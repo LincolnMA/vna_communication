@@ -1,7 +1,9 @@
 import serial
 import serial.tools.list_ports
 import tkinter as tk
+import platform
 
+#funções
 def connect():
     print("conectando...")
     global connection
@@ -10,6 +12,8 @@ def connect():
     selected = selected_port.get().split(":")
     port_name = selected[0]
     connection.port = port_name
+    if platform.system() == "Linux": 
+        connection.port = "/dev/" + connection.port
     
     connection.baudrate = int(ent1.get())
     
@@ -28,7 +32,18 @@ def connect():
         connection.stopbits = serial.STOPBITS_TWO
 
     connection.timeout = float(ent3.get())
-
+    connection.open()
+def desconnect():
+    print("Desconectando...")
+    global connection
+    if not connection.is_open: return
+    connection.close()
+def send():
+    print("enviando...")
+    if not connection.is_open(): return
+    commands = hex_in.get().split("-")
+    byte_array = bytes([int(x,16) for x in commands])
+    connection.send(byte_array)
 
 #variáveis
 root = tk.Tk()
@@ -83,12 +98,18 @@ ent3.grid(row = 4,column = 1)
 connect_bt = tk.Button(root,text = "Conectar",command = connect)
 connect_bt.grid(row = 5,column = 0)
 
-desconnect_bt = tk.Button(root,text = "Desconectar")
+desconnect_bt = tk.Button(root,text = "Desconectar",command = desconnect)
 desconnect_bt.grid(row = 5,column = 1)
+
+send_bt = tk.Button(root,text = "Enviar múltiplos hex (xx-xx-xx-...)",command = send)
+send_bt.grid(row = 6,column = 0)
+hex_in = tk.Entry(root)
+hex_in.grid(row = 6,column = 1)
+
+rec_bt = tk.Button(root,text = "Receber hex")
+rec_bt.grid(row = 7,column = 0)
+hex_out = tk.Entry(root)
+hex_out.grid(row = 7,column = 1)
+
 root.mainloop()
 
-"""
-serial_port = '/dev/ttyACM0' # Porta
-baud_rate = 115200  # Taxa
-ser = serial.Serial(serial_port, baud_rate, timeout=1)
-"""
