@@ -39,12 +39,17 @@ def desconnect():
     if not connection.is_open: return
     connection.close()
 def send():
-    print("enviando...")
+    print("Enviando...")
     if not connection.is_open(): return
     commands = hex_in.get().split("-")
     byte_array = bytes([int(x,16) for x in commands])
     connection.send(byte_array)
-
+def rec():
+    print("Recebendo...")
+    if not connection.is_open(): return
+    byte_array = connection.read(connection.in_waiting)
+    hex_out.delete(0,tk.END)
+    hex_out.insert(0,byte_array.hex())
 #variáveis
 root = tk.Tk()
 
@@ -106,7 +111,7 @@ send_bt.grid(row = 6,column = 0)
 hex_in = tk.Entry(root)
 hex_in.grid(row = 6,column = 1)
 
-rec_bt = tk.Button(root,text = "Receber hex")
+rec_bt = tk.Button(root,text = "Receber hex",command = rec)
 rec_bt.grid(row = 7,column = 0)
 hex_out = tk.Entry(root)
 hex_out.grid(row = 7,column = 1)
