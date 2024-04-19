@@ -40,13 +40,15 @@ def desconnect():
     connection.close()
 def send():
     print("Enviando...")
-    if not connection.is_open(): return
+    global connection
+    if not connection.is_open: return
     commands = hex_in.get().split("-")
     byte_array = bytes([int(x,16) for x in commands])
-    connection.send(byte_array)
+    connection.write(byte_array)
 def rec():
     print("Recebendo...")
-    if not connection.is_open(): return
+    global connection
+    if not connection.is_open: return
     byte_array = connection.read(connection.in_waiting)
     hex_out.delete(0,tk.END)
     hex_out.insert(0,byte_array.hex())
