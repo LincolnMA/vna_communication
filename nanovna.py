@@ -35,9 +35,36 @@ class Nvna:
             self._connection.parity = serial.PARITY_NONE
             self._connection.stopbits = serial.STOPBITS_ONE
             self._connection.timeout = 1
-            #self._connection.open()
+            self._connection.open()
     def __str__(self):
         return f"Em construção"
+    def measure(self,
+                sweepStartHz,           #Sets the sweep start frequency in Hz. uint64. 
+                sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
+                sweepPoints,            #Sets the number of sweep frequency points. uint16.
+                valuesPerFrequency):    #Sets the number of data points for each frequency. uint16.
+        command = bytearray([int(0x23)])#comando
+        command += bytearray([int(0x00)])#endereço
+        command += sweepStartHz.to_bytes(length=8, byteorder='little', signed=False)
+        command += bytearray([int(0x23)])#comando
+        command += bytearray([int(0x10)])#endereço
+        command += sweepStepHz.to_bytes(length=8, byteorder='little', signed=False)
+        command += bytearray([int(0x21)])#comando
+        command += bytearray([int(0x20)])#endereço
+        command += sweepPoints.to_bytes(length=2, byteorder='little', signed=False)
+        command += bytearray([int(0x21)])#comando
+        command += bytearray([int(0x22)])#endereço
+        command += valuesPerFrequency.to_bytes(length=2, byteorder='little', signed=False)
+        command += bytearray([int(0x18)])#comando
+        command += bytearray([int(0x30)])#endereço
+        command += sweepPoints.to_bytes(length=1, byteorder='little', signed=False)
+        self._connection.write(command)
+        #Substituir por uma função f(comando,endereço,length,valor)
+        #colocar command como propriedade do objeto
+
+
+
+
 def find_port():
     ports = serial.tools.list_ports.comports()
     n_ports = len(ports)
