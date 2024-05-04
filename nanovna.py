@@ -1,7 +1,7 @@
 import serial
 import serial.tools.list_ports
 import time
-
+#falta adicionar toda a parte de calibração
 class Nvna:
     #Variáveis privadas
 
@@ -59,6 +59,7 @@ class Nvna:
         self.send(0x21,0x22,2,valuesPerFrequency)
         self.send(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
         
+        self._freqs = (list(range(0,sweepPoints)) * sweepStepHz) + sweepStartHz
         waiting_bytes = sweepPoints*32.0
         delay = waiting_bytes*8.0/self._connection.baudrate
         print("Aguardando ",2*delay," segundos...")
@@ -72,6 +73,15 @@ class Nvna:
             self._raw.append(self._connection.read(32))
         print("dados brutos:")
         print(self._raw)
+
+        for i in self._raw:
+            self._fwd0Re.append(int.from_bytes(i[0:4],byteorder="little",signed = False))
+            self._fwd0Im.append(int.from_bytes(i[4:8],byteorder="little",signed = False))
+            self._rev0Re.append(int.from_bytes(i[8:12],byteorder="little",signed = False))
+            self._rev0Im.append(int.from_bytes(i[12:16],byteorder="little",signed = False))
+            self._rev1Re.append(int.from_bytes(i[16:20],byteorder="little",signed = False))
+            self._rev1Im.append(int.from_bytes(i[20:24],byteorder="little",signed = False))
+            self._freqIndex.append(int.from_bytes(i[24:26],byteorder="little",signed = False))
         
     def send(self,
              command,#Comando a ser usado
