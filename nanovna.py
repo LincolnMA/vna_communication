@@ -1,8 +1,10 @@
 import serial
 import serial.tools.list_ports
+import time
 
 class Nvna:
     #Variáveis privadas
+
     _freqs = []
     _S11 = []
     _S21 = []
@@ -17,8 +19,11 @@ class Nvna:
     _rev1Im = []
     
     _freqIndex = []
+
+    _raw = []
     
     _connection = serial.Serial()
+    _version = None
     #Métodos
        
     def __init__(self,
@@ -27,15 +32,18 @@ class Nvna:
                  baudrate = 115200):
         
         print("conectando...")
-        if not self._connection.is_open:
-            if port_name == None:
-                port_name = find_port()
-            self._connection.port = port_name
-            self._connection.baudrate = baudrate
-            self._connection.parity = serial.PARITY_NONE
-            self._connection.stopbits = serial.STOPBITS_ONE
-            self._connection.timeout = 1
-            self._connection.open()
+        self._version = version
+        if self._connection.is_open:
+            self._connection.close()
+        if port_name == None:
+            port_name = find_port()
+        self._connection.port = port_name
+        self._connection.baudrate = baudrate
+        self._connection.parity = serial.PARITY_NONE
+        self._connection.stopbits = serial.STOPBITS_ONE
+        self._connection.timeout = 1
+        self._connection.open()
+        
     def __str__(self):
         return f"Em construção"
     def measure(self,
@@ -43,27 +51,44 @@ class Nvna:
                 sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
                 sweepPoints,            #Sets the number of sweep frequency points. uint16.
                 valuesPerFrequency):    #Sets the number of data points for each frequency. uint16.
-        command = bytearray([int(0x23)])#comando
-        command += bytearray([int(0x00)])#endereço
-        command += sweepStartHz.to_bytes(length=8, byteorder='little', signed=False)
-        command += bytearray([int(0x23)])#comando
-        command += bytearray([int(0x10)])#endereço
-        command += sweepStepHz.to_bytes(length=8, byteorder='little', signed=False)
-        command += bytearray([int(0x21)])#comando
-        command += bytearray([int(0x20)])#endereço
-        command += sweepPoints.to_bytes(length=2, byteorder='little', signed=False)
-        command += bytearray([int(0x21)])#comando
-        command += bytearray([int(0x22)])#endereço
-        command += valuesPerFrequency.to_bytes(length=2, byteorder='little', signed=False)
-        command += bytearray([int(0x18)])#comando
-        command += bytearray([int(0x30)])#endereço
-        command += sweepPoints.to_bytes(length=1, byteorder='little', signed=False)
-        self._connection.write(command)
-        #Substituir por uma função f(comando,endereço,length,valor)
-        #colocar command como propriedade do objeto
-
-
-
+        
+        print("Configurando Sweep...")
+        self.send(0x23,0x0,8,sweepStartHz)
+        self.send(0x23,0x10,8,sweepStepHz)
+        self.send(0x21,0x20,2,sweepPoints)
+        self.send(0x21,0x22,2,valuesPerFrequency)
+        self.send(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
+        
+        waiting_points = sweepPoints*32.0
+        delay = waiting_points*8.0/self._connection.baudrate
+        print("Aguardando ",2*delay," segundos...")
+        time.sleep(2*delay)
+        
+        if self._connection.in_waiting != sweepPoints*32:
+            print("Erro de conexão!")
+            print("Esperado ",waiting_points,"bytes, tendo chegado ",self._connection.in_waiting)
+            return
+        for i in range(0,sweepPoints):
+            self._raw.append(self._connection.read(32))
+        print(self._raw)
+        
+    def send(self,
+             command,#Comando a ser usado
+             address,#Endereço do resgistrador
+             length, #Número de bytes a serem enviados
+             value): #valor a ser transmitido para o registrador
+        
+        payload = bytearray([int(command)])#comando
+        payload += bytearray([int(address)])#endereço
+        payload += value.to_bytes(length=length, byteorder='little', signed=False)
+        print(payload)
+        if self._connection.is_open:
+            self._connection.write(payload)
+        else:
+            print("Conection Lost!")
+    
+    def close(self):
+        self._connection.close()
 
 def find_port():
     ports = serial.tools.list_ports.comports()
