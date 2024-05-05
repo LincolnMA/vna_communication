@@ -1,6 +1,6 @@
 import nanovna as vna
 
-a = vna.Nvna(3)#Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz 
+a = vna.Nvna(3,baudrate=9600)#Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz 
 a.measure(1000000000,1000000000,2,1)#valores usados no excel, na mesma ordem
 """ Em construção
 [f1,s11] = a.extract("S11")

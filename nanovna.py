@@ -59,17 +59,19 @@ class Nvna:
         self.send(0x21,0x22,2,valuesPerFrequency)
         self.send(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
         
-        self._freqs = (list(range(0,sweepPoints)) * sweepStepHz) + sweepStartHz
-        waiting_bytes = sweepPoints*32.0
+        f = list(range(0,sweepPoints))
+        self._freqs = [(i*sweepStepHz)+sweepStartHz for i in f]
+        
+        waiting_bytes = sweepPoints*valuesPerFrequency*32.0
         delay = waiting_bytes*8.0/self._connection.baudrate
         print("Aguardando ",2*delay," segundos...")
         time.sleep(2*delay)
         
-        if self._connection.in_waiting != sweepPoints*32:
+        if self._connection.in_waiting != sweepPoints*valuesPerFrequency*32:
             print("Erro de conexão!")
             print("Esperado ",waiting_bytes,"bytes, tendo chegado ",self._connection.in_waiting)
             return
-        for i in range(0,sweepPoints):
+        for i in range(0,sweepPoints*valuesPerFrequency):
             self._raw.append(self._connection.read(32))
         print("dados brutos:")
         print(self._raw)
