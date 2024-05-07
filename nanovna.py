@@ -21,14 +21,20 @@ class Nvna:
     _freqIndex = []
 
     _raw = []
+
+    _payload = []
     
     _connection = serial.Serial()
+    
     _version = None
+
+    _default_baudrate = 115200
+    _default_point_size = 32
     #Métodos
        
     def __init__(self,
                  version = 3,#V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz 
-                 baudrate = 115200,
+                 baudrate = _default_baudrate,
                  port_name = None):
         
         print("conectando...")
@@ -43,6 +49,7 @@ class Nvna:
         self._connection.stopbits = serial.STOPBITS_ONE
         self._connection.timeout = 1
         self._connection.open()
+        time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
         
     def __str__(self):
         return f"Em construção"
@@ -51,28 +58,31 @@ class Nvna:
                 sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
                 sweepPoints,            #Sets the number of sweep frequency points. uint16.
                 valuesPerFrequency):    #Sets the number of data points for each frequency. uint16.
-        
+        #Falta checar a versão com as frequências inseridas
         print("Configurando Sweep...")
-        self.send(0x23,0x0,8,sweepStartHz)
-        self.send(0x23,0x10,8,sweepStepHz)
-        self.send(0x21,0x20,2,sweepPoints)
-        self.send(0x21,0x22,2,valuesPerFrequency)
-        self.send(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
+        self._payload = bytearray()
+        self.config_payload(0x23,0x0,8,sweepStartHz)
+        self.config_payload(0x23,0x10,8,sweepStepHz)
+        self.config_payload(0x21,0x20,2,sweepPoints)
+        self.config_payload(0x21,0x22,2,valuesPerFrequency)
+        self.config_payload(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
+        print(self._payload)
+        if self._connection.is_open:
+            self._connection.write(self._payload)
+            self._connection.flush()
+        else:
+            print("Conection Lost!")
         
         f = list(range(0,sweepPoints))
         self._freqs = [(i*sweepStepHz)+sweepStartHz for i in f]
-        
-        waiting_bytes = sweepPoints*valuesPerFrequency*32.0
+
+        waiting_bytes = sweepPoints*valuesPerFrequency*float(self._default_point_size)
         delay = waiting_bytes*8.0/self._connection.baudrate
+        #Falta usar o delay para alterar o timeout da serial, o padrão ainda é 1s
         print("Aguardando ",2*delay," segundos...")
-        time.sleep(2*delay)
         
-        if self._connection.in_waiting != sweepPoints*valuesPerFrequency*32:
-            print("Erro de conexão!")
-            print("Esperado ",waiting_bytes,"bytes, tendo chegado ",self._connection.in_waiting)
-            return
         for i in range(0,sweepPoints*valuesPerFrequency):
-            self._raw.append(self._connection.read(32))
+            self._raw.append(self._connection.read(self._default_point_size))
         print("dados brutos:")
         print(self._raw)
 
@@ -84,24 +94,28 @@ class Nvna:
             self._rev1Re.append(int.from_bytes(i[16:20],byteorder="little",signed = False))
             self._rev1Im.append(int.from_bytes(i[20:24],byteorder="little",signed = False))
             self._freqIndex.append(int.from_bytes(i[24:26],byteorder="little",signed = False))
+        #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
+        self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/
+                     complex(self._fwd0Re[i],self._fwd0Re[i]) for i in range(0,sweepPoints)]
+        self._S21 = [complex(self._rev1Re[i],self._rev1Im[i])/
+                     complex(self._fwd0Re[i],self._fwd0Re[i]) for i in range(0,sweepPoints)]
+    def extract(self,par):
+        if par == "S11": return [self._freqs,self._S11]
+        if par == "S21": return [self._freqs,self._S21]
         
-    def send(self,
+    def config_payload(self,
              command,#Comando a ser usado
              address,#Endereço do resgistrador
              length, #Número de bytes a serem enviados
              value): #valor a ser transmitido para o registrador
         
-        payload = bytearray([int(command)])#comando
-        payload += bytearray([int(address)])#endereço
-        payload += value.to_bytes(length=length, byteorder='little', signed=False)
-        print(payload)
-        if self._connection.is_open:
-            self._connection.write(payload)
-        else:
-            print("Conection Lost!")
+        self._payload += bytearray([int(command)])#comando
+        self._payload += bytearray([int(address)])#endereço
+        self._payload += value.to_bytes(length=length, byteorder='little', signed=False)
     
     def close(self):
         self._connection.close()
+        
 
 def find_port():
     ports = serial.tools.list_ports.comports()
