@@ -2,8 +2,9 @@ import nanovna as vna
 import math
 import matplotlib.pyplot as plot
 
-#a = vna.Nvna(3)#Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz
-a = vna.Nvna(3,baudrate=9600)#Teste com Arduino 
+a = vna.Nvna(3)#Teste com VNA de verdade
+#Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz
+#a = vna.Nvna(3,baudrate=9600)#Teste com Arduino 
 
 a.measure(1000000000,1000000000,2,1)#valores usados no excel, na mesma ordem
 a.close()
