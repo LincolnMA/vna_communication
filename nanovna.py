@@ -50,7 +50,7 @@ class Nvna:
         self._connection.timeout = 1
         self._connection.open()
         time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
-        
+                     #Talvez não precise com o equipamento real
     def __str__(self):
         return f"Em construção"
     def measure(self,
@@ -87,12 +87,12 @@ class Nvna:
         print(self._raw)
 
         for i in self._raw:
-            self._fwd0Re.append(int.from_bytes(i[0:4],byteorder="little",signed = False))
-            self._fwd0Im.append(int.from_bytes(i[4:8],byteorder="little",signed = False))
-            self._rev0Re.append(int.from_bytes(i[8:12],byteorder="little",signed = False))
-            self._rev0Im.append(int.from_bytes(i[12:16],byteorder="little",signed = False))
-            self._rev1Re.append(int.from_bytes(i[16:20],byteorder="little",signed = False))
-            self._rev1Im.append(int.from_bytes(i[20:24],byteorder="little",signed = False))
+            self._fwd0Re.append(int.from_bytes(i[0:4],byteorder="little",signed = True))
+            self._fwd0Im.append(int.from_bytes(i[4:8],byteorder="little",signed = True))
+            self._rev0Re.append(int.from_bytes(i[8:12],byteorder="little",signed = True))
+            self._rev0Im.append(int.from_bytes(i[12:16],byteorder="little",signed = True))
+            self._rev1Re.append(int.from_bytes(i[16:20],byteorder="little",signed = True))
+            self._rev1Im.append(int.from_bytes(i[20:24],byteorder="little",signed = True))
             self._freqIndex.append(int.from_bytes(i[24:26],byteorder="little",signed = False))
         #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
         self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/
@@ -116,7 +116,6 @@ class Nvna:
     def close(self):
         self._connection.close()
         
-
 def find_port():
     ports = serial.tools.list_ports.comports()
     n_ports = len(ports)
