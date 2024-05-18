@@ -3,6 +3,27 @@ import serial.tools.list_ports
 import time
 #falta adicionar toda a parte de calibração
 class Nvna:
+
+    #Código de Operação dos comandos
+    
+    NOP = 0X00 #No operation
+    INDICATE = 0X0d #Device always replies with ascii
+    
+    READ = 0X10 #Read a 1-byte register at address AA.Reply is one byte, the read value.
+    READ2 = 0X11 #Read a 2-byte register at address AA.Reply is 2 bytes, the read value.
+    READ4 = 0X12 #Read a 4-byte register at address AA.Reply is 4 bytes, the read value.
+    READFIFO = 0X18 #Read NN values from a FIFO at address AA.Reply is the read values in order.Each value can be more than one byte and is determined by the FIFO being read.
+    
+    WRITE = 0X20 #Write XX to a 1-byte register at address AA.There is no reply.
+    WRITE2 = 0X21 #Write X0 to AA, then X1 to AA+1.There is no reply.
+    WRITE4 = 0X22 #Write X0..X3 to registers starting at AA. There is no reply.
+    WRITE8 = 0X23 #This command is 10 bytes in total.Bytes 2..9 correspond to X0..X7.Write X0..X7 to registers starting at AA.There is no reply.
+    WRITEFIFO = 0X28 #Write NN bytes into a FIFO at address AA.NN bytes of data to be written into the FIFO should follow “NN".There is no reply.
+
+    #Registradores
+    
+
+
     #Variáveis privadas
 
     _freqs = []
