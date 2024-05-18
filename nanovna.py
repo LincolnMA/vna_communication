@@ -3,6 +3,36 @@ import serial.tools.list_ports
 import time
 #falta adicionar toda a parte de calibração
 class Nvna:
+
+    #Código de Operação dos comandos
+    
+    NOP = 0X00 #No operation
+    INDICATE = 0X0d #Device always replies with ascii '2'(0x32)
+    
+    READ = 0X10 #Read a 1-byte register at address AA.Reply is one byte, the read value.
+    READ2 = 0X11 #Read a 2-byte register at address AA.Reply is 2 bytes, the read value.
+    READ4 = 0X12 #Read a 4-byte register at address AA.Reply is 4 bytes, the read value.
+    READFIFO = 0X18 #Read NN values from a FIFO at address AA.Reply is the read values in order.Each value can be more than one byte and is determined by the FIFO being read.
+    
+    WRITE = 0X20 #Write XX to a 1-byte register at address AA.There is no reply.
+    WRITE2 = 0X21 #Write X0 to AA, then X1 to AA+1.There is no reply.
+    WRITE4 = 0X22 #Write X0..X3 to registers starting at AA. There is no reply.
+    WRITE8 = 0X23 #This command is 10 bytes in total.Bytes 2..9 correspond to X0..X7.Write X0..X7 to registers starting at AA.There is no reply.
+    WRITEFIFO = 0X28 #Write NN bytes into a FIFO at address AA.NN bytes of data to be written into the FIFO should follow “NN".There is no reply.
+
+    #Registradores
+    REGsweepStartHz = 0X00 #Sets the sweep start frequency in Hz. uint64
+    REGsweepStepHz = 0X10 #Sets the sweep step frequency in Hz. uint64
+    REGsweepPoints = 0X20 #Sets the number of sweep frequency points. uint16
+    REGvaluesPerFrequency = 0X22 #Sets the number of data points to output for each frequency.uint16.
+    REGrawSamplesMode = 0x26 #Writing 1 switches USB data format to raw samples mode and leaves this protocol.
+    REGvaluesFIFO = 0x30 #Returns VNA sweep data points. Each value is 32 bytes.Writing any value (using WRITE command) clears the FIFO.
+    REGdeviceVariant = 0xf0 #The type of device this is. Always 0x02 for S-A-A-2.
+    REGprotocolVersion = 0xf1 #Version of this wire protocol. Always 0x01.
+    REGhardwareRevision = 0xf2 #Hardware revision.
+    REGfirmwareMajor = 0xf3 #Firmware major version.
+    REGfirmwareM = 0xf4 #Firmware minor version.
+
     #Variáveis privadas
 
     _freqs = []
@@ -61,11 +91,11 @@ class Nvna:
         #Falta checar a versão com as frequências inseridas
         print("Configurando Sweep...")
         self._payload = bytearray()
-        self.config_payload(0x23,0x0,8,sweepStartHz)
-        self.config_payload(0x23,0x10,8,sweepStepHz)
-        self.config_payload(0x21,0x20,2,sweepPoints)
-        self.config_payload(0x21,0x22,2,valuesPerFrequency)
-        self.config_payload(0x18,0x30,1,sweepPoints)#Comando de leitura da fila
+        self.config_payload(self.WRITE8,self.REGsweepStartHz,8,sweepStartHz)
+        self.config_payload(self.WRITE8,self.REGsweepStepHz,8,sweepStepHz)
+        self.config_payload(self.WRITE2,self.REGsweepPoints,2,sweepPoints)
+        self.config_payload(self.WRITE2,self.REGvaluesPerFrequency,2,valuesPerFrequency)
+        self.config_payload(self.READFIFO,self.REGvaluesFIFO,1,sweepPoints)#Comando de leitura da fila
         print(self._payload)
         if self._connection.is_open:
             self._connection.write(self._payload)
