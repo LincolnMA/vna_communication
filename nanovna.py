@@ -1,6 +1,8 @@
 import serial
 import serial.tools.list_ports
 import time
+
+import math
 #falta adicionar toda a parte de calibração
 class Nvna:
 
@@ -34,6 +36,9 @@ class Nvna:
     REGfirmwareM = 0xf4 #Firmware minor version.
 
     #Variáveis privadas
+
+    _abs_S11 = []
+    _abs_S21 = []
 
     _freqs = []
     _S11 = []
@@ -130,9 +135,25 @@ class Nvna:
         
         self._S21 = [complex(self._rev1Re[i],self._rev1Im[i])/
                      complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
+    
+        self._abs_S11 = [10*math.log10(abs(i)) for i in self._S11]
+        self._abs_S21 = [10*math.log10(abs(i)) for i in self._S21]
+    
     def extract(self,par):
         if par == "S11": return [self._freqs,self._S11]
-        if par == "S21": return [self._freqs,self._S21]
+        elif par == "S21": return [self._freqs,self._S21]
+    
+    def get_abs(self,par): # Retorna o valor absoluto do parâmetro S indicado
+        if self._abs_S11 == [] or self._abs_S21 == []: raise TypeError("Absolute values not assigned. Check the measurement step.")
+        
+        if par == "S11":return self._abs_S11
+        elif par == "S21":return self._abs_S21
+
+    def get_freqs(self,unit="GHz"): # Retorna as frequências medidas em várias escalas diferentes
+        if unit == "Hz":return self._freqs
+        elif unit == "kHz":return [f / 10e3 for f in self._freqs]
+        elif unit == "MHz":return [f / 10e6 for f in self._freqs]
+        elif unit == "GHz":return [f / 10e9 for f in self._freqs]
         
     def config_payload(self,
              command,#Comando a ser usado
