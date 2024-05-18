@@ -6,14 +6,14 @@ a = vna.Nvna(3)#Teste com VNA de verdade
 #Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz
 #a = vna.Nvna(3,baudrate=9600)#Teste com Arduino 
 
-a.measure(1000000000,3000000000,255,1)#valores usados no excel, na mesma ordem
+a.measure(3000000000,11764705,255,1)#gera valores de 3 a 6 GHz com 255 pontos
 a.close()
 #S11 e S21 são variáveis complexas
 f1,s11 = a.extract("S11")
 f2,s21 = a.extract("S21")
 
-abs_s11 = [-10*math.log10(abs(i)) for i in s11]
-abs_s21 = [-10*math.log10(abs(i)) for i in s21]
+abs_s11 = [10*math.log10(abs(i)) for i in s11]
+abs_s21 = [10*math.log10(abs(i)) for i in s21]
 f1_GHz = [i/1000000000 for i in f1]
 f2_GHz = f1_GHz
 

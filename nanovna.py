@@ -96,9 +96,10 @@ class Nvna:
             self._freqIndex.append(int.from_bytes(i[24:26],byteorder="little",signed = False))
         #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
         self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/
-                     complex(self._fwd0Re[i],self._fwd0Re[i]) for i in range(0,sweepPoints)]
+                     complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
+        
         self._S21 = [complex(self._rev1Re[i],self._rev1Im[i])/
-                     complex(self._fwd0Re[i],self._fwd0Re[i]) for i in range(0,sweepPoints)]
+                     complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
     def extract(self,par):
         if par == "S11": return [self._freqs,self._S11]
         if par == "S21": return [self._freqs,self._S21]
