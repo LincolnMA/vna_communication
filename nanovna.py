@@ -1,6 +1,7 @@
 import serial
 import serial.tools.list_ports
 import time
+import struct
 #falta adicionar toda a parte de calibração
 class Nvna:
 
@@ -117,13 +118,28 @@ class Nvna:
         print(self._raw)
 
         for i in self._raw:
-            self._fwd0Re.append(int.from_bytes(i[0:4],byteorder="little",signed = True))
-            self._fwd0Im.append(int.from_bytes(i[4:8],byteorder="little",signed = True))
-            self._rev0Re.append(int.from_bytes(i[8:12],byteorder="little",signed = True))
-            self._rev0Im.append(int.from_bytes(i[12:16],byteorder="little",signed = True))
-            self._rev1Re.append(int.from_bytes(i[16:20],byteorder="little",signed = True))
-            self._rev1Im.append(int.from_bytes(i[20:24],byteorder="little",signed = True))
-            self._freqIndex.append(int.from_bytes(i[24:26],byteorder="little",signed = False))
+            
+            unpacked_data = struct.unpack("<6lH6s",i)
+            """
+                Estrutura do dados (32bytes little endian): 
+                    fwd0Re int32
+                    fwd0Im int32
+                    rev0Re int32
+                    rev0Im int32
+                    rev1Re int32
+                    rev1Im int32
+                    freqIndex uint16
+                    reserved (falta descobrir oque é) 6bytes 
+            """
+
+            self._fwd0Re.append(unpacked_data[0])
+            self._fwd0Im.append(unpacked_data[1])
+            self._rev0Re.append(unpacked_data[2])
+            self._rev0Im.append(unpacked_data[3])
+            self._rev1Re.append(unpacked_data[4])
+            self._rev1Im.append(unpacked_data[5])
+            self._freqIndex.append(unpacked_data[6])
+        
         #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
         self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/
                      complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
