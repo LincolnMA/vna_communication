@@ -92,6 +92,7 @@ class Nvna:
         #Falta checar a versão com as frequências inseridas
         print("Configurando Sweep...")
         self._payload = bytearray()
+        self.config_payload(self.WRITE,self.REGvaluesFIFO,1,0)
         self.config_payload(self.WRITE8,self.REGsweepStartHz,8,sweepStartHz)
         self.config_payload(self.WRITE8,self.REGsweepStepHz,8,sweepStepHz)
         self.config_payload(self.WRITE2,self.REGsweepPoints,2,sweepPoints)
@@ -116,6 +117,7 @@ class Nvna:
             self._raw.append(self._connection.read(self._default_point_size))
         print("dados brutos:")
         print(self._raw)
+        print("faltam ",self._connection.in_waiting, " bytes na fila")
 
         self._fwd0Re = [0]*sweepPoints
         self._fwd0Im = [0]*sweepPoints
@@ -138,6 +140,7 @@ class Nvna:
                     reserved (falta descobrir oque é) 6bytes 
             """
             self._freqIndex = unpacked_data[6]
+            print("index = ",self._freqIndex)
             self._fwd0Re[self._freqIndex] += unpacked_data[0]
             self._fwd0Im[self._freqIndex] += unpacked_data[1]
             self._rev0Re[self._freqIndex] += unpacked_data[2]
@@ -152,12 +155,21 @@ class Nvna:
         self._rev1Re = [i/valuesPerFrequency for i in self._rev1Re]
         self._rev1Im = [i/valuesPerFrequency for i in self._rev1Im]
         
-        #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
-        self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/
-                     complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
+        self._S11 = [complex(0,0)]*sweepPoints
+        self._S21 = [complex(0,0)]*sweepPoints
+        for i in range(0,sweepPoints):
+            try:
+                self._S11[i] = complex(self._rev0Re[i],self._rev0Im[i]) /\
+                               complex(self._fwd0Re[i],self._fwd0Im[i])
+            except ZeroDivisionError:
+                self._S11[i] = complex(1,0)
         
-        self._S21 = [complex(self._rev1Re[i],self._rev1Im[i])/
-                     complex(self._fwd0Re[i],self._fwd0Im[i]) for i in range(0,sweepPoints)]
+            try:
+                self._S21[i] = complex(self._rev1Re[i],self._rev1Im[i]) /\
+                               complex(self._fwd0Re[i],self._fwd0Im[i])
+            except ZeroDivisionError:
+                self._S21[i] = complex(1,0)
+
     def extract(self,par):
         if par == "S11": return [self._freqs,self._S11]
         if par == "S21": return [self._freqs,self._S21]
