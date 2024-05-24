@@ -96,7 +96,7 @@ class Nvna:
         self.config_payload(self.WRITE8,self.REGsweepStepHz,8,sweepStepHz)
         self.config_payload(self.WRITE2,self.REGsweepPoints,2,sweepPoints)
         self.config_payload(self.WRITE2,self.REGvaluesPerFrequency,2,valuesPerFrequency)
-        self.config_payload(self.READFIFO,self.REGvaluesFIFO,1,sweepPoints)#Comando de leitura da fila
+        self.config_payload(self.READFIFO,self.REGvaluesFIFO,1,sweepPoints*valuesPerFrequency)#Comando de leitura da fila
         print(self._payload)
         if self._connection.is_open:
             self._connection.write(self._payload)
@@ -109,14 +109,20 @@ class Nvna:
 
         waiting_bytes = sweepPoints*valuesPerFrequency*float(self._default_point_size)
         delay = waiting_bytes*8.0/self._connection.baudrate
-        #Falta usar o delay para alterar o timeout da serial, o padrão ainda é 1s
-        print("Aguardando ",2*delay," segundos...")
+        self._connection.timeout = 2*delay
+        print("Aguardando um máximo de ",2*delay," segundos...")
         
         for i in range(0,sweepPoints*valuesPerFrequency):
             self._raw.append(self._connection.read(self._default_point_size))
         print("dados brutos:")
         print(self._raw)
 
+        self._fwd0Re = [0]*sweepPoints
+        self._fwd0Im = [0]*sweepPoints
+        self._rev0Re = [0]*sweepPoints
+        self._rev0Im = [0]*sweepPoints
+        self._rev1Re = [0]*sweepPoints
+        self._rev1Im = [0]*sweepPoints
         for i in self._raw:
             
             unpacked_data = struct.unpack("<6lH6s",i)
@@ -131,14 +137,20 @@ class Nvna:
                     freqIndex uint16
                     reserved (falta descobrir oque é) 6bytes 
             """
-
-            self._fwd0Re.append(unpacked_data[0])
-            self._fwd0Im.append(unpacked_data[1])
-            self._rev0Re.append(unpacked_data[2])
-            self._rev0Im.append(unpacked_data[3])
-            self._rev1Re.append(unpacked_data[4])
-            self._rev1Im.append(unpacked_data[5])
-            self._freqIndex.append(unpacked_data[6])
+            self._freqIndex = unpacked_data[6]
+            self._fwd0Re[self._freqIndex] += unpacked_data[0]
+            self._fwd0Im[self._freqIndex] += unpacked_data[1]
+            self._rev0Re[self._freqIndex] += unpacked_data[2]
+            self._rev0Im[self._freqIndex] += unpacked_data[3]
+            self._rev1Re[self._freqIndex] += unpacked_data[4]
+            self._rev1Im[self._freqIndex] += unpacked_data[5]
+        
+        self._fwd0Re = [i/valuesPerFrequency for i in self._fwd0Re]
+        self._fwd0Im = [i/valuesPerFrequency for i in self._fwd0Im]
+        self._rev0Re = [i/valuesPerFrequency for i in self._rev0Re]
+        self._rev0Im = [i/valuesPerFrequency for i in self._rev0Im]
+        self._rev1Re = [i/valuesPerFrequency for i in self._rev1Re]
+        self._rev1Im = [i/valuesPerFrequency for i in self._rev1Im]
         
         #falta processar uma possível média dos valores quando valuesperfreq for maior que 1
         self._S11 = [complex(self._rev0Re[i],self._rev0Im[i])/

@@ -3,10 +3,9 @@ import math
 import matplotlib.pyplot as plot
 
 a = vna.Nvna(3)#Teste com VNA de verdade
-#Versão no NanoVNA: V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz
-#a = vna.Nvna(3,baudrate=9600)#Teste com Arduino 
 
-a.measure(3000000000,11764705,255,1)#gera valores de 3 a 6 GHz com 255 pontos
+#a.measure(3000000000,11764705,255,1)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
+a.measure(3000000000,11764705,51,5)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
 a.close()
 #S11 e S21 são variáveis complexas
 f1,s11 = a.extract("S11")
