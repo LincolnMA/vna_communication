@@ -2,6 +2,7 @@ import serial
 import serial.tools.list_ports
 import time
 import struct
+import math
 #falta adicionar toda a parte de calibração
 class Nvna:
 
@@ -82,8 +83,39 @@ class Nvna:
         self._connection.open()
         time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
                      #Talvez não precise com o equipamento real
+
+
     def __str__(self):
         return f"Em construção"
+    
+
+    def sweep(self,start_f,end_f,n_points,nmpp):
+        total_points = int( n_points*nmpp )
+        step = int( (end_f - start_f)/n_points)
+        if total_points <= 255:#max value to one fifo read
+            self.measure(start_f,step,n_points,nmpp)
+            return
+        #Determina o número de frequênicas diferentes que cabem em um sweep, menos o último 
+        n_freqs_per_measure = math.floor(255/nmpp)
+        #determina o número de frequêncas na última medida
+        n_freqs_last_measure = n_points%n_freqs_per_measure 
+        #determina o número de sweeps, menos o último
+        n_measures = math.floor(n_points/n_freqs_per_measure)
+        #realização das medidas de maneira consecutiva
+        for i in range(0,n_measures):
+            print("medição ",i)
+            self.measure(int( start_f + (i*step*n_freqs_per_measure) ),
+                         int( step ),
+                         int( n_freqs_per_measure ),
+                         int( nmpp ))
+            #a = input()
+        #Última medição
+        self.measure(int( start_f + n_measures*step*n_freqs_per_measure ),
+                     int( step ),
+                     int( n_freqs_last_measure ),
+                     int( nmpp ))
+        
+
     def measure(self,
                 sweepStartHz,           #Sets the sweep start frequency in Hz. uint64. 
                 sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
@@ -91,6 +123,11 @@ class Nvna:
                 valuesPerFrequency):    #Sets the number of data points for each frequency. uint16.
         #Falta checar a versão com as frequências inseridas
         print("Configurando Sweep...")
+        print("( ",
+              sweepStartHz,           #Sets the sweep start frequency in Hz. uint64. 
+              sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
+              sweepPoints,            #Sets the number of sweep frequency points. uint16.
+              valuesPerFrequency," )")
         self._payload = bytearray()
         self.config_payload(self.WRITE,self.REGvaluesFIFO,1,0)
         self.config_payload(self.WRITE8,self.REGsweepStartHz,8,sweepStartHz)
@@ -98,7 +135,7 @@ class Nvna:
         self.config_payload(self.WRITE2,self.REGsweepPoints,2,sweepPoints)
         self.config_payload(self.WRITE2,self.REGvaluesPerFrequency,2,valuesPerFrequency)
         self.config_payload(self.READFIFO,self.REGvaluesFIFO,1,sweepPoints*valuesPerFrequency)#Comando de leitura da fila
-        print(self._payload)
+        #print(self._payload)
         if self._connection.is_open:
             self._connection.write(self._payload)
             self._connection.flush()
@@ -106,17 +143,18 @@ class Nvna:
             print("Conection Lost!")
         
         f = list(range(0,sweepPoints))
-        self._freqs = [(i*sweepStepHz)+sweepStartHz for i in f]
+        freqs = [(i*sweepStepHz)+sweepStartHz for i in f]
 
         waiting_bytes = sweepPoints*valuesPerFrequency*float(self._default_point_size)
         delay = waiting_bytes*8.0/self._connection.baudrate
         self._connection.timeout = 2*delay
         print("Aguardando um máximo de ",2*delay," segundos...")
         
+        self._raw = []
         for i in range(0,sweepPoints*valuesPerFrequency):
             self._raw.append(self._connection.read(self._default_point_size))
-        print("dados brutos:")
-        print(self._raw)
+        #print("dados brutos:")
+        #print(self._raw)
         print("faltam ",self._connection.in_waiting, " bytes na fila")
 
         self._fwd0Re = [0]*sweepPoints
@@ -140,7 +178,7 @@ class Nvna:
                     reserved (falta descobrir oque é) 6bytes 
             """
             self._freqIndex = unpacked_data[6]
-            print("index = ",self._freqIndex)
+            #print("index = ",self._freqIndex)
             self._fwd0Re[self._freqIndex] += unpacked_data[0]
             self._fwd0Im[self._freqIndex] += unpacked_data[1]
             self._rev0Re[self._freqIndex] += unpacked_data[2]
@@ -155,25 +193,29 @@ class Nvna:
         self._rev1Re = [i/valuesPerFrequency for i in self._rev1Re]
         self._rev1Im = [i/valuesPerFrequency for i in self._rev1Im]
         
-        self._S11 = [complex(0,0)]*sweepPoints
-        self._S21 = [complex(0,0)]*sweepPoints
+        S11 = [complex(0,0)]*sweepPoints
+        S21 = [complex(0,0)]*sweepPoints
         for i in range(0,sweepPoints):
             try:
-                self._S11[i] = complex(self._rev0Re[i],self._rev0Im[i]) /\
+                S11[i] = complex(self._rev0Re[i],self._rev0Im[i]) /\
                                complex(self._fwd0Re[i],self._fwd0Im[i])
             except ZeroDivisionError:
-                self._S11[i] = complex(1,0)
+                S11[i] = complex(1,0)
         
             try:
-                self._S21[i] = complex(self._rev1Re[i],self._rev1Im[i]) /\
+                S21[i] = complex(self._rev1Re[i],self._rev1Im[i]) /\
                                complex(self._fwd0Re[i],self._fwd0Im[i])
             except ZeroDivisionError:
-                self._S21[i] = complex(1,0)
+                S21[i] = complex(1,0)
+        self._S11.extend(S11)
+        self._S21.extend(S21)
+        self._freqs.extend(freqs)
 
     def extract(self,par):
         if par == "S11": return [self._freqs,self._S11]
         if par == "S21": return [self._freqs,self._S21]
         
+
     def config_payload(self,
              command,#Comando a ser usado
              address,#Endereço do resgistrador
@@ -184,9 +226,11 @@ class Nvna:
         self._payload += bytearray([int(address)])#endereço
         self._payload += value.to_bytes(length=length, byteorder='little', signed=False)
     
+
     def close(self):
         self._connection.close()
         
+
 def find_port():
     ports = serial.tools.list_ports.comports()
     n_ports = len(ports)

@@ -4,9 +4,12 @@ import matplotlib.pyplot as plot
 
 a = vna.Nvna(3)#Teste com VNA de verdade
 
-#a.measure(3000000000,11764705,255,1)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
-a.measure(3000000000,11764705,51,5)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
-a.close()
+#a.measure(3000000000,11764705,51,5)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
+a.sweep(50e3,#Frequência inicial
+        6e9, #frequÊncia final
+        1000,#Nº de pontos
+        5)   #Nº de medidas por ponto
+
 #S11 e S21 são variáveis complexas
 f1,s11 = a.extract("S11")
 f2,s21 = a.extract("S21")
@@ -25,3 +28,4 @@ ax.set_title("Teste")  # Add a title to the axes.
 ax.legend()  # Add a legend.
 plot.show()
 
+a.close()
