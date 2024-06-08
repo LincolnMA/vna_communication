@@ -36,11 +36,31 @@ class Nvna:
     REGfirmwareM = 0xf4 #Firmware minor version.
 
     #Variáveis privadas
+    
+    MAX_FIFO = 255 #número máximo de pontos que cabem na fila
+    #Parâmetros do sweep
+    _sweepStart = None
+    _sweepEnd = None
+    _n_points = None #resoluçao do sweep
+    _nmpp = None #Numero de Medidas Por Ponto (NMPP)
 
-    _freqs = []
+    #Parametros de erro para calibrar
+    _e00 = []
+    _e01 = []
+    _e11 = []
+
+    #valores já corrigidos
     _S11 = []
     _S21 = []
+
+    _freqs = []
     
+    #valores brutos 
+    _S11Raw = []
+    _S21Raw = []
+    _freqIndex = []
+
+    #ATENÇÃO!! Esses valores se referem a um único MEASURE, um SWEEP faz várias MEASURES 
     _fwd0Re = []
     _fwd0Im = []
     
@@ -50,8 +70,9 @@ class Nvna:
     _rev1Re = []
     _rev1Im = []
     
-    _freqIndex = []
+    
 
+    #dados brutos da serial
     _raw = []
 
     _payload = []
@@ -63,7 +84,7 @@ class Nvna:
     _default_baudrate = 115200
     _default_point_size = 32
     #Métodos
-       
+    
     def __init__(self,
                  version = 3,#V2 vai de 50KHz-3GHz, V3 vai de 1MHz-6GHz 
                  baudrate = _default_baudrate,
@@ -90,13 +111,19 @@ class Nvna:
     
 
     def sweep(self,start_f,end_f,n_points,nmpp):
+        self._S11 = []
+        self._S21 = []
+        self._S11Raw = []
+        self._S21Raw = []
+        self._freqs = []
+
         total_points = int( n_points*nmpp )
         step = int( (end_f - start_f)/n_points)
-        if total_points <= 255:#max value to one fifo read
+        if total_points <= self.MAX_FIFO:#max value to one fifo read
             self.measure(start_f,step,n_points,nmpp)
             return
-        #Determina o número de frequênicas diferentes que cabem em um sweep, menos o último 
-        n_freqs_per_measure = math.floor(255/nmpp)
+        #Determina o número de frequências diferentes que cabem em um sweep, menos o último 
+        n_freqs_per_measure = math.floor(self.MAX_FIFO/nmpp)
         #determina o número de frequêncas na última medida
         n_freqs_last_measure = n_points%n_freqs_per_measure 
         #determina o número de sweeps, menos o último
@@ -207,15 +234,57 @@ class Nvna:
                                complex(self._fwd0Re[i],self._fwd0Im[i])
             except ZeroDivisionError:
                 S21[i] = complex(1,0)
-        self._S11.extend(S11)
-        self._S21.extend(S21)
+        self._S11Raw.extend(S11)
+        self._S21Raw.extend(S21)
         self._freqs.extend(freqs)
 
     def extract(self,par):
         if par == "S11": return [self._freqs,self._S11]
         if par == "S21": return [self._freqs,self._S21]
         
+    #Calibration methods
+    def save_calib(self,name):
+        csv = 'sweep_start,sweep_end,n_points,nmpp,freq (Hz),e00,e01,e11\n'
+        csv+= f'{self._sweepStart},{self._sweepEnd},{self._n_points},{self._nmpp}\n'
+        for f,e00,e01,e11 in zip(self._freqs,self._e00,self._e01,self._e11):
+            csv += f",,,,{f},{e00},{e01},{e11}\n"
+        file = open("./Calib/"+name,'w')
+        file.write(csv)
+        file.close()
+    
+    #a fazer, 
+    def load_calib():
+        pass
+    
+    def calib(self):
+        for e00, e01,e11, s11m in zip(self._e00,self._e01,self._e11,self._S11Raw):
+            S11Corrigido = (s11m - e00)/(e01 + e11*(s11m - e00))
+            self._S11 = S11Corrigido
 
+    def set_calib(self, start_f,end_f,n_points,nmpp):
+        input("Please connect the Load Calibrattion Standart and press any key")
+        self.sweep(start_f,end_f,n_points,nmpp)
+        S11ml = self._S11Raw
+
+        input("Please connect the Short Calibrattion Standart and press any key")
+        self.sweep(start_f,end_f,n_points,nmpp)
+        S11ms = self._S11Raw
+
+        input("Please connect the Open Calibrattion Standart and press any key")
+        self.sweep(start_f,end_f,n_points,nmpp)
+
+        S11mo = self._S11Raw        
+
+
+        #calculando e00,e01,e11
+        self._e00 = S11ml
+
+        self._e11 = [(s11mo-2*s11ml+s11ms)/(s11mo-s11ms) for 
+                     s11mo,s11ml,s11ms in zip(S11mo,S11ml,S11ms)]
+        
+        self._e01 = [(1-e11**2)*(s11mo-s11ms)/2 for 
+                     e11,s11mo,s11ms in zip(self._e11,S11mo,S11ms)]
+        
     def config_payload(self,
              command,#Comando a ser usado
              address,#Endereço do resgistrador
