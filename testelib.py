@@ -5,7 +5,7 @@ import matplotlib.pyplot as plot
 a = vna.Nvna(3)#Teste com VNA de verdade
 
 #a.measure(3000000000,11764705,51,5)#gera valores de 3 a 6 GHz com 255 pontos e 1 repetições
-a.sweep(50e3,#Frequência inicial
+a.measure(50e3,#Frequência inicial
         6e9, #frequÊncia final
         1000,#Nº de pontos
         5)   #Nº de medidas por ponto

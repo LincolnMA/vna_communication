@@ -89,11 +89,11 @@ class Nvna:
         return f"Em construção"
     
 
-    def sweep(self,start_f,end_f,n_points,nmpp):
+    def measure(self,start_f,end_f,n_points,nmpp):
         total_points = int( n_points*nmpp )
         step = int( (end_f - start_f)/n_points)
         if total_points <= 255:#max value to one fifo read
-            self.measure(start_f,step,n_points,nmpp)
+            self.sweep(start_f,step,n_points,nmpp)
             return
         #Determina o número de frequênicas diferentes que cabem em um sweep, menos o último 
         n_freqs_per_measure = math.floor(255/nmpp)
@@ -104,19 +104,19 @@ class Nvna:
         #realização das medidas de maneira consecutiva
         for i in range(0,n_measures):
             print("medição ",i)
-            self.measure(int( start_f + (i*step*n_freqs_per_measure) ),
+            self.sweep(int( start_f + (i*step*n_freqs_per_measure) ),
                          int( step ),
                          int( n_freqs_per_measure ),
                          int( nmpp ))
             #a = input()
         #Última medição
-        self.measure(int( start_f + n_measures*step*n_freqs_per_measure ),
+        self.sweep(int( start_f + n_measures*step*n_freqs_per_measure ),
                      int( step ),
                      int( n_freqs_last_measure ),
                      int( nmpp ))
         
 
-    def measure(self,
+    def sweep(self,
                 sweepStartHz,           #Sets the sweep start frequency in Hz. uint64. 
                 sweepStepHz,            #Sets the sweep step frequency in Hz. uint64.
                 sweepPoints,            #Sets the number of sweep frequency points. uint16.
