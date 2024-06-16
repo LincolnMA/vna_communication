@@ -3,10 +3,10 @@ import serial.tools.list_ports
 import time
 import struct
 import math
-#falta adicionar toda a parte de calibração
+
 class Nvna:
 
-    #Código de Operação dos comandos
+    #Operation codes
     
     NOP = 0X00 #No operation
     INDICATE = 0X0d #Device always replies with ascii '2'(0x32)
@@ -22,7 +22,7 @@ class Nvna:
     WRITE8 = 0X23 #This command is 10 bytes in total.Bytes 2..9 correspond to X0..X7.Write X0..X7 to registers starting at AA.There is no reply.
     WRITEFIFO = 0X28 #Write NN bytes into a FIFO at address AA.NN bytes of data to be written into the FIFO should follow “NN".There is no reply.
 
-    #Registradores
+    #Registers
     REGsweepStartHz = 0X00 #Sets the sweep start frequency in Hz. uint64
     REGsweepStepHz = 0X10 #Sets the sweep step frequency in Hz. uint64
     REGsweepPoints = 0X20 #Sets the number of sweep frequency points. uint16
@@ -37,24 +37,24 @@ class Nvna:
 
     #Variáveis privadas
 
-    _freqs = []
-    _S11 = []
-    _S21 = []
+    _freqs = []     #Frequency vector, in Hz
+    _S11_RAW = []   #S11 uncalibrated
+    _S21_RAW = []   #S22 uncalibrated
     
-    _fwd0Re = []
-    _fwd0Im = []
+    _fwd0Re = []    #real part of foward wave from port 1
+    _fwd0Im = []    #imaginary part of foward wave from port 1
     
-    _rev0Re = []
-    _rev0Im = []
+    _rev0Re = []    #real part of reflected wave
+    _rev0Im = []    #imaginary part of reflected wave
     
-    _rev1Re = []
-    _rev1Im = []
+    _rev1Re = []    #real part of S21
+    _rev1Im = []    #imaginary part of S21
     
-    _freqIndex = []
+    _freqIndex = [] #index of measures comming from each sweep
 
-    _raw = []
+    _raw = []       #raw data from each sweep
 
-    _payload = []
+    _payload = []   #packet of data contain all commands to start a sweep 
     
     _connection = serial.Serial()
     
@@ -62,6 +62,12 @@ class Nvna:
 
     _default_baudrate = 115200
     _default_point_size = 32
+    #Variáveis de calibração
+    _e00 = None
+    _e01 = None
+    _e10 = None
+    _e11 = None
+    _cal = False    #flag que indica se foi calibrado
     #Métodos
        
     def __init__(self,
@@ -90,6 +96,11 @@ class Nvna:
     
 
     def measure(self,start_f,end_f,n_points,nmpp):
+
+        self._S11_RAW = []
+        self._S21_RAW = []
+        self._freqs = []
+
         total_points = int( n_points*nmpp )
         step = int( (end_f - start_f)/n_points)
         if total_points <= 255:#max value to one fifo read
@@ -207,13 +218,28 @@ class Nvna:
                                complex(self._fwd0Re[i],self._fwd0Im[i])
             except ZeroDivisionError:
                 S21[i] = complex(1,0)
-        self._S11.extend(S11)
-        self._S21.extend(S21)
+        self._S11_RAW.extend(S11)
+        self._S21_RAW.extend(S21)
         self._freqs.extend(freqs)
 
     def extract(self,par):
-        if par == "S11": return [self._freqs,self._S11]
-        if par == "S21": return [self._freqs,self._S21]
+        if par == "S11_RAW": 
+            return [self._freqs,
+                    [10*math.log10(abs(i)) for i in self._S11_RAW]]
+        if par == "S21_RAW": 
+            return [self._freqs,
+                    [10*math.log10(abs(i)) for i in self._S21_RAW]]
+        if par == "S11_CAL":
+            s11_cal = [complex(0,0)]*len(self._e00) 
+            for i in range(len(self._e00)):
+                temp = self._S11_RAW[i] - self._e00[i]
+                s11_cal[i] = (temp)/(self._e01[i] + self._e11[i]*temp)
+            return [self._freqs,
+                    [10*math.log10(abs(i)) for i in s11_cal]]
+        #Não implementado ainda
+        if par == "S21": pass
+        if par == "PHASE": pass
+        if par == "SMITCH": pass
         
 
     def config_payload(self,
@@ -229,7 +255,43 @@ class Nvna:
 
     def close(self):
         self._connection.close()
+
+    def calibration(self,start_f,end_f,n_points,nmpp):
         
+        print("Insert short and press enter...")
+        a = input()
+        self.measure(start_f,end_f,n_points,nmpp)
+        s11_short = self._S11_RAW
+        s21_short = self._S21_RAW
+
+        print("Insert open and press enter...")
+        a = input()
+        self.measure(start_f,end_f,n_points,nmpp)
+        s11_open = self._S11_RAW
+        s21_open = self._S21_RAW
+
+        print("Insert load and press enter...")
+        a = input()
+        self.measure(start_f,end_f,n_points,nmpp)
+        s11_load = self._S11_RAW
+        s21_load = self._S21_RAW
+        """
+        print("Insert throw and press enter...")
+        a = input()
+        self.measure(start_f,end_f,n_points,nmpp)
+        s11_throw = self.extract("S11_RAW")
+        s21_throw = self.extract("S21_RAW")
+        """
+
+        self._e00 = s11_load
+        self._e11 = [complex(0,0)]*len(self._e00)
+        self._e01 = [complex(0,0)]*len(self._e00)
+        for i in range(len(self._e00)):
+            self._e11[i] = (s11_open[i] + s11_short[i] - 2*s11_load[i])/(s11_open[i] - s11_short[i])
+            self._e01[i] = (1-self._e11[i]**2)*(s11_open[i] - s11_short[i])/2
+
+        print("Calibrated!")
+        self._cal = True
 
 def find_port():
     ports = serial.tools.list_ports.comports()
