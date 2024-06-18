@@ -330,7 +330,10 @@ def save2s1p(headers,values,filename):
 
     for i in range( len(values[0]) ):
         for j in range( len(values) ):
-            f.write(str(values[j][i]) + "\t")
+            if j == 0:
+                f.write( f'{values[j][i]:10}\t' )
+            else:
+                f.write( f'{values[j][i]:.11f}\t' )
         f.write("\n")
     
     f.close()

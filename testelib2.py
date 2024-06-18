@@ -19,7 +19,7 @@ a.measure(50e3,#Frequência inicial
 #S11 e S21 são variáveis complexas
 a.calibrate_S11()
 freqs,p_real,p_imag = a.extract("SMITH_CAL")
-save2s1p(["Hz","S","RI","R 50"],        #Cabeçalhos
+vna.save2s1p(["Hz","S","RI","R 50"],        #Cabeçalhos
          [freqs,p_real,p_imag],         #colunas
          "teste")                       #nome do arquivo
 
