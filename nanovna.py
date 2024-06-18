@@ -40,6 +40,8 @@ class Nvna:
     _freqs = []     #Frequency vector, in Hz
     _S11_RAW = []   #S11 uncalibrated
     _S21_RAW = []   #S22 uncalibrated
+
+    _S11_CAL = []   #s11 calibrated
     
     _fwd0Re = []    #real part of foward wave from port 1
     _fwd0Im = []    #imaginary part of foward wave from port 1
@@ -87,7 +89,7 @@ class Nvna:
         self._connection.stopbits = serial.STOPBITS_ONE
         self._connection.timeout = 1
         self._connection.open()
-        time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
+        #time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
                      #Talvez não precise com o equipamento real
 
 
@@ -224,22 +226,24 @@ class Nvna:
 
     def extract(self,par):
         if par == "S11_RAW": 
-            return [self._freqs,
-                    [10*math.log10(abs(i)) for i in self._S11_RAW]]
+            return [self._freqs,to_db(self._S11_RAW)]
         if par == "S21_RAW": 
-            return [self._freqs,
-                    [10*math.log10(abs(i)) for i in self._S21_RAW]]
+            return [self._freqs,to_db(self._S21_RAW)]
         if par == "S11_CAL":
-            s11_cal = [complex(0,0)]*len(self._e00) 
-            for i in range(len(self._e00)):
-                temp = self._S11_RAW[i] - self._e00[i]
-                s11_cal[i] = (temp)/(self._e01[i] + self._e11[i]*temp)
-            return [self._freqs,
-                    [10*math.log10(abs(i)) for i in s11_cal]]
+            return [self._freqs,to_db(self._S11_CAL)]
+        if par == "SMITH_RAW":
+            R = [i.real for i in self._S11_RAW]
+            I = [i.imag for i in self._S11_RAW]
+            return [self._freqs,R,I]
+        if par == "SMITH_CAL":
+            module = [abs(i) for i in self._S11_CAL]
+            max_module = max(module)
+            R = [i.real/max_module for i in self._S11_CAL]
+            I = [i.imag/max_module for i in self._S11_CAL]
+            return [self._freqs,R,I]
         #Não implementado ainda
         if par == "S21": pass
         if par == "PHASE": pass
-        if par == "SMITCH": pass
         
 
     def config_payload(self,
@@ -293,6 +297,18 @@ class Nvna:
         print("Calibrated!")
         self._cal = True
 
+
+    def calibrate_S11(self):
+        if not self._cal:
+            print("Sem Calibração!")
+            self._S11_CAL =  [0 for i in self._S11_RAW]
+        self._S11_CAL = [complex(0,0)]*len(self._e00) 
+        for i in range(len(self._e00)):
+            temp = self._S11_RAW[i] - self._e00[i]
+            self._S11_CAL[i] = (temp)/(self._e01[i] + self._e11[i]*temp)
+        return [self._freqs,to_db(self._S11_CAL)]
+
+
 def find_port():
     ports = serial.tools.list_ports.comports()
     n_ports = len(ports)
@@ -300,3 +316,21 @@ def find_port():
     if n_ports == 1: print("VNA em " + ports[0].device)
     if n_ports > 1: pass #Ainda não implementado
     return ports[0].device
+
+def to_db(val):
+    return [20*math.log10(abs(i)) for i in val]
+
+def save2s1p(headers,values,filename):
+    f = open("measures/" + filename + ".s1p", "w")
+    f.write("! Saved from nanovna library\n")
+    
+    f.write("#")
+    for i in headers: f.write(" " + i)
+    f.write("\n")
+
+    for i in range( len(values[0]) ):
+        for j in range( len(values) ):
+            f.write(str(values[j][i]) + "\t")
+        f.write("\n")
+    
+    f.close()

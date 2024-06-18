@@ -18,19 +18,18 @@ a.measure(50e3,#Frequência inicial
 
 #S11 e S21 são variáveis complexas
 a.calibrate_S11()
-f1,abs_s11_cal = a.extract("S11_CAL")
-f2,abs_s11_raw = a.extract("S11_RAW")
-
-f1_GHz = [i/1000000000 for i in f1]
-f2_GHz = f1_GHz
+freqs,p_real,p_imag = a.extract("SMITH_CAL")
+save2s1p(["Hz","S","RI","R 50"],        #Cabeçalhos
+         [freqs,p_real,p_imag],         #colunas
+         "teste")                       #nome do arquivo
 
 fig, ax = plot.subplots()  # Create a figure containing a single axes.
-ax.plot(f1_GHz, abs_s11_raw, label = "S11 RAW")  # Plot some data on the axes.
-ax.plot(f2_GHz, abs_s11_cal, label = "S11 CAL")
-ax.set_xlabel("Frequency in GHz")  # Add an x-label to the axes.
-ax.set_ylabel("dB")  # Add a y-label to the axes.
+ax.plot(p_real, p_imag, label = "SMITH")  # Plot some data on the axes.
+ax.set_xlabel("Real")  # Add an x-label to the axes.
+ax.set_ylabel("Imaginary")  # Add a y-label to the axes.
 ax.set_title("Teste")  # Add a title to the axes.
 ax.legend()  # Add a legend.
+ax.axis([-1,1,-1,1])
 plot.show()
 
 a.close()
