@@ -260,6 +260,8 @@ class Nvna:
     def close(self):
         self._connection.close()
 
+    #calbration methods vvvvvv
+
     def calibration(self,start_f,end_f,n_points,nmpp):
         
         print("Insert short and press enter...")
@@ -307,7 +309,51 @@ class Nvna:
             temp = self._S11_RAW[i] - self._e00[i]
             self._S11_CAL[i] = (temp)/(self._e01[i] + self._e11[i]*temp)
         return [self._freqs,to_db(self._S11_CAL)]
+    def save_calib(self,filename):
+        if self._cal == False: 
+            raise Exception("You haven't calibrated yet! Please calibrate or load calibration data")
+        
+        e00_real = [c.real for c in self._e00]
+        e00_imag = [c.imag for c in self._e00]
+        e01_real = [c.real for c in self._e01]
+        e01_imag = [c.imag for c in self._e01]
+        e11_real = [c.real for c in self._e11]
+        e11_imag = [c.imag for c in self._e11]
 
+
+        save2s1p(
+            ['Hz','S','RI','e00','e01','e11'],
+            [self._freqs,
+             e00_real,e00_imag,
+             e01_real,e01_imag,
+             e11_real,e11_imag
+             ],
+            '/calibration/'+filename
+        )
+    def load_calib(self,path):
+        header, data = read_s1p(path)
+        self._freqs = data[0]
+        e00_real = data[1]
+        e00_imag = data[2]
+        e01_real = data[3]
+        e01_imag = data[4]
+        e11_real = data[5]
+        e11_imag = data[6]
+
+        e00 = []
+        e01 = []
+        e11 = []
+
+        for i in range(len(e00)):
+            e00.append(complex(e00_real[i], e00_imag[i]))
+            e01.append(complex(e01_real[i],e01_imag[i]))
+            e11.append(complex(e11_real[i],e11_imag[i]))
+
+        self._e00 = e00
+        self._e01 = e01
+        self._e11 = e11
+
+        self._cal = True
 
 def find_port():
     ports = serial.tools.list_ports.comports()
@@ -337,3 +383,38 @@ def save2s1p(headers,values,filename):
         f.write("\n")
     
     f.close()
+
+def read_s1p(path):
+    file = open(path,'r')
+    content = file.read()
+    file.close()
+
+    content = content.split('\n') #separar por linhas
+    header_line = 0
+    for line in content:
+
+        if '#' in line:
+            break
+        header_line += 1
+    
+    header = content[header_line]
+    header = header.split(' ')
+    header.pop(0) #remove '#'
+
+    raw = content[header_line+1:]
+    raw = [line.split('\t') for line in raw]
+
+    data = []
+    
+    for line in raw:
+        d = []
+        for item in line:
+            if item != '': d.append(float(item))
+        if d != []: data.append(d)
+
+    data_transposed = [] # transpondo a matriz, os dados vem em colunas, então teremos uma coluna para cada parametro, ao invés de uma linha para cada 
+
+    for i in range(len(data)):
+        data_transposed.append([d[i] for d in data])
+
+    return header, data_transposed
