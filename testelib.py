@@ -18,8 +18,8 @@ a.measure(50e3,#Frequência inicial
 
 #S11 e S21 são variáveis complexas
 a.calibrate_S11()
-f1,abs_s11_cal = a.extract("S11_CAL")
-f2,abs_s11_raw = a.extract("S11_RAW")
+f1,abs_s11_cal = a.extract_S11_CAL()
+f2,abs_s11_raw = a.extract_S11_RAW
 
 f1_GHz = [i/1000000000 for i in f1]
 f2_GHz = f1_GHz

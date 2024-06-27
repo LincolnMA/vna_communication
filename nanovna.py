@@ -224,27 +224,36 @@ class Nvna:
         self._S21_RAW.extend(S21)
         self._freqs.extend(freqs)
 
-    def extract(self,par):
-        if par == "S11_RAW": 
-            return [self._freqs,to_db(self._S11_RAW)]
-        if par == "S21_RAW": 
-            return [self._freqs,to_db(self._S21_RAW)]
-        if par == "S11_CAL":
-            return [self._freqs,to_db(self._S11_CAL)]
-        if par == "SMITH_RAW":
-            R = [i.real for i in self._S11_RAW]
-            I = [i.imag for i in self._S11_RAW]
-            return [self._freqs,R,I]
-        if par == "SMITH_CAL":
-            module = [abs(i) for i in self._S11_CAL]
-            max_module = max(module)
-            R = [i.real/max_module for i in self._S11_CAL]
-            I = [i.imag/max_module for i in self._S11_CAL]
-            return [self._freqs,R,I]
-        #Não implementado ainda
-        if par == "S21": pass
-        if par == "PHASE": pass
-        
+    def extract_S11_RAW(self):
+        return [self._freqs,to_db(self._S11_RAW)]
+
+    def extract_S21_RAW(self):
+        return [self._freqs,to_db(self._S21_RAW)]
+
+    def extract_S11_CAL(self):
+        return [self._freqs,to_db(self._S11_CAL)]
+    
+    def extract_SMITH_RAW(self):
+        R = [i.real for i in self._S11_RAW]
+        I = [i.imag for i in self._S11_RAW]
+        return [self._freqs,R,I]
+    
+    def extract_SMITH_CAL(self):
+        module = [abs(i) for i in self._S11_CAL]
+        max_module = max(module)
+        R = [i.real/max_module for i in self._S11_CAL]
+        I = [i.imag/max_module for i in self._S11_CAL]
+        return [self._freqs,R,I]
+
+    #Não implementado ainda vvvvvvvvvvvvvvvvvvv
+    """
+    #essa daqui precisa medir o throught,
+    def extract_S21CAL(self):
+        pass
+    
+    def extract_phase(self):
+        pass
+    """
 
     def config_payload(self,
              command,#Comando a ser usado
