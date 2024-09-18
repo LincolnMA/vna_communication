@@ -1,4 +1,5 @@
 import nanovna
+import matplotlib.pyplot as plot
 
 
 
@@ -26,9 +27,18 @@ nanovna.save2s1p(
 
 
 
-header, data = nanovna.read_s1p('./measures/teste1-savecalib.s1p')
-print([d[0] for d in data])
+header, data = nanovna.read_s1p('./measures/erik1.s1p')
 
-print(header)
-for d in data:
-    print(d)
+f = data[0]
+r = data[1]
+i = data[2]
+
+fig, ax = plot.subplots()  # Create a figure containing a single axes.
+ax.plot(f, r, label = "S11 CAL real")  # Plot some data on the axes.
+ax.plot(f, i, label = "S11 CAL imag")  # Plot some data on the axes.
+    
+ax.set_xlabel("Frequency in GHz")  # Add an x-label to the axes.
+ax.set_ylabel("dB")  # Add a y-label to the axes.
+ax.set_title("Teste")  # Add a title to the axes.
+ax.legend()  # Add a legend.
+plot.show()

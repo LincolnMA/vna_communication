@@ -245,6 +245,11 @@ class Nvna:
         I = [i.imag/max_module for i in self._S11_CAL]
         return [self._freqs,R,I]
 
+    def extract_S11(self):
+        R = [n.real for n in self._S11_CAL]
+        I = [n.imag for n in self._S11_CAL]
+        return [self._freqs,R,I]
+
     #Não implementado ainda vvvvvvvvvvvvvvvvvvv
     """
     #essa daqui precisa medir o throught,
@@ -414,16 +419,20 @@ def read_s1p(path):
     raw = [line.split('\t') for line in raw]
 
     data = []
-    
     for line in raw:
         d = []
         for item in line:
             if item != '': d.append(float(item))
         if d != []: data.append(d)
 
+    print(data)
     data_transposed = [] # transpondo a matriz, os dados vem em colunas, então teremos uma coluna para cada parametro, ao invés de uma linha para cada 
 
-    for i in range(len(data)):
-        data_transposed.append([d[i] for d in data])
+    for i in range(len(data[0])):
+        colum = []
+        for e in range(len(data)):
+            colum.append(data[e][i])
+        
+        data_transposed.append(colum)
 
     return header, data_transposed
