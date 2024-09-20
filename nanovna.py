@@ -127,7 +127,21 @@ class Nvna:
                      int( step ),
                      int( n_freqs_last_measure ),
                      int( nmpp ))
+    
+
+    # testando detecção automática vvvvvv
+    def detect(self):
+        ports = serial.tools.list_ports.comports()
         
+        for p in ports:
+            self._connection.port = p
+            self._connection.write(b'\x0d')
+            response = self._connection.read(2)
+            if response == b'\x32':
+                print("Detected!")
+                break
+            else:
+                print("Not detected :/")
 
     def sweep(self,
                 sweepStartHz,           #Sets the sweep start frequency in Hz. uint64. 
