@@ -191,7 +191,7 @@ class Nvna:
         self._rev1Re = [0]*sweepPoints
         self._rev1Im = [0]*sweepPoints
         for i in self._raw:
-            
+
             unpacked_data = struct.unpack("<6lH6s",i)
             """
                 Estrutura do dados (32bytes little endian): 
@@ -356,11 +356,14 @@ class Nvna:
              e01_real,e01_imag,
              e11_real,e11_imag
              ],
-            '/calibration/'+filename
+            'calibration/'+filename
         )
     def load_calib(self,path):
         header, data = read_s1p(path)
         self._freqs = data[0]
+        
+       
+        
         e00_real = data[1]
         e00_imag = data[2]
         e01_real = data[3]
@@ -372,7 +375,7 @@ class Nvna:
         e01 = []
         e11 = []
 
-        for i in range(len(e00)):
+        for i in range(len(self._freqs)):
             e00.append(complex(e00_real[i], e00_imag[i]))
             e01.append(complex(e01_real[i],e01_imag[i]))
             e11.append(complex(e11_real[i],e11_imag[i]))
@@ -382,9 +385,26 @@ class Nvna:
         self._e11 = e11
 
         self._cal = True
-
+  
 def find_port():
     ports = serial.tools.list_ports.comports()
+    for p in ports: 
+        try:#try to connect to each port
+            c = serial.Serial(port=p.device,baudrate=115200)
+            c.read_all() #limpar o buffer
+
+            c.write(bytearray(b'\x0d')) #escreve comando "indicate" (response = 0x32 or "2")
+            c.flush()
+
+            time.sleep(0.000001) #delay necessário, se não a porta ignora
+            if(c.in_waiting):
+                if c.read() == b'2':
+                    return c.port
+            c.close()
+        except:
+            pass
+
+  
     n_ports = len(ports)
     if n_ports == 0: print("Não há portas conectadas!")
     if n_ports == 1: print("VNA em " + ports[0].device)
@@ -439,7 +459,7 @@ def read_s1p(path):
             if item != '': d.append(float(item))
         if d != []: data.append(d)
 
-    print(data)
+
     data_transposed = [] # transpondo a matriz, os dados vem em colunas, então teremos uma coluna para cada parametro, ao invés de uma linha para cada 
 
     for i in range(len(data[0])):

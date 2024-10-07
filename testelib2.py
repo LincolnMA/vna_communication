@@ -2,7 +2,7 @@ import nanovna as vna
 import math
 import matplotlib.pyplot as plot
 
-a = vna.Nvna(3)#Teste com VNA de verdade
+a = vna.Nvna(3,port_name='/dev/ttyACM0',baudrate=2e6)#Teste com VNA de verdade
 
 a.calibration(50e3,#Frequência inicial
         6e9, #frequência final

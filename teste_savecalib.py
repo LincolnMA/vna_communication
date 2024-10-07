@@ -3,9 +3,9 @@ import math
 import matplotlib.pyplot as plot
 
 
-freq_init = 50e3
+freq_init = 3e9
 freq_final = 6e9
-points_measure = 1000
+points_measure = 500
 mpp = 5  # measure per points
 
 
@@ -20,23 +20,25 @@ if action == 's':
                        mpp)
     device.save_calib('teste-save-calib')
 else:
-    device.load_calib('teste-save-calib')
-
+    device.load_calib('./measures/calibration/teste-save-calib.s1p')
+    
+input("insira a antena")
 device.measure(freq_init, freq_final, points_measure, mpp)
 device.calibrate_S11()
 
-f, real, imag = device.extract_S11()
+f, real, imag =  device.extract_S11()
+f = [a/1000000000 for a in f]
+print(f)
 
-
+print(real)
 fig, ax = plot.subplots()  # Create a figure containing a single axes.
 ax.plot(f, real, label="real")  # Plot some data on the axes.
 ax.plot(f, imag, label="imaginary")  # Plot some data on the axes.
 
-ax.set_xlabel("Real")  # Add an x-label to the axes.
-ax.set_ylabel("Imaginary")  # Add a y-label to the axes.
+ax.set_xlabel("freqs")  # Add an x-label to the axes.
+ax.set_ylabel("value")  # Add a y-label to the axes.
 ax.set_title("Teste")  # Add a title to the axes.
 ax.legend()  # Add a legend.
-ax.axis([-1, 1, -1, 1])
 plot.show()
 
 device.close()

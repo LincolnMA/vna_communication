@@ -9,8 +9,8 @@ class positioner:
     def __init__(self) -> None:
         pass
     def connect(self,porta,b = 9600):
-        self.connection = serial.Serial(port=self.port,baudrate=self.baudrate)
-
+        self.connection = serial.Serial(port=porta,baudrate=b)
+        
         
 
 
@@ -25,3 +25,7 @@ class positioner:
 
     def big_step_back(self):
         self.connection.write(b'a')
+
+a = positioner()
+a.connect(porta='/dev/ttyACM0')
+a.big_step_back()
