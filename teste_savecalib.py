@@ -5,7 +5,7 @@ import matplotlib.pyplot as plot
 
 freq_init = 3e9
 freq_final = 6e9
-points_measure = 500
+points_measure = 250
 mpp = 5  # measure per points
 
 

@@ -1,5 +1,5 @@
 import serial
-
+import time
 
 class positioner:
     
@@ -10,10 +10,9 @@ class positioner:
         pass
     def connect(self,porta,b = 9600):
         self.connection = serial.Serial(port=porta,baudrate=b)
-        
-        
-
-
+        while not self.connection.in_waiting:
+            pass
+        print("home achivied!")
     def small_step_foward(self):
         self.connection.write(b'd')
 
@@ -26,6 +25,6 @@ class positioner:
     def big_step_back(self):
         self.connection.write(b'a')
 
-a = positioner()
-a.connect(porta='/dev/ttyACM0')
-a.big_step_back()
+    def disconnect(self):
+        self.connection.close()
+

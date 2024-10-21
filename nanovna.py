@@ -89,6 +89,8 @@ class Nvna:
         self._connection.stopbits = serial.STOPBITS_ONE
         self._connection.timeout = 1
         self._connection.open()
+
+        print("VNA connected!")
         #time.sleep(2)#Tempo para estabelecimento de uma conexão serial nova
                      #Talvez não precise com o equipamento real
 
@@ -263,6 +265,12 @@ class Nvna:
         R = [n.real for n in self._S11_CAL]
         I = [n.imag for n in self._S11_CAL]
         return [self._freqs,R,I]
+
+    def save_S11(self,filename):
+        R = [n.real for n in self._S11_CAL]
+        I = [n.imag for n in self._S11_CAL]
+        
+        save2s1p(['Hz','R','I'],[self._freqs,R,I], filename)
 
     #Não implementado ainda vvvvvvvvvvvvvvvvvvv
     """

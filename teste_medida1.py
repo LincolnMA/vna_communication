@@ -1,7 +1,7 @@
 import nanovna as vna
 import math
 import matplotlib.pyplot as plot
-from driver import positioner
+from driver_lib import positioner
 
 
 freq_init = 50e3
