@@ -3,17 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-vna communication documentation
+Bem vindo a documentação do Projeto Mini
 ===============================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+Aqui você pode encontrar uma introdução ao projeto, exemplos de uso e a API desenvolvida. No momento, esta documentação contém informações apenas sobre a API python desenvolvida, mas futuramente poderá abrigar outras partes do projeto.
 
 .. toctree::
    :maxdepth: 2
    
-   usage
+   mini
+   usagem
+   api
+   posicionador
 
 
