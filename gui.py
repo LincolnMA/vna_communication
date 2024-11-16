@@ -1,32 +1,113 @@
+import nanovna as vna
+import driver_lib
+
 import customtkinter as CTK
 from tkinter import filedialog as fd
+
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
+
+from matplotlib.figure import Figure
+import numpy as np
+
+import json
 
 CTK.set_appearance_mode("System")  # Modes: system (default), light, dark
 CTK.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
 
+
+#lite = vna.Nvna()
+#driver = driver_lib.positioner()
+
+
+#GUI CONFIG
+save_dir = './'
+
+#GUI constants
+SP = 4 #small pad
+MP = 8 #medium pad
+GP = 16 #big pad
+
+
 class myEntry(CTK.CTkFrame):
     def __init__(self,master,label):
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         self.title = CTK.CTkLabel(self,text=label)
         self.entry = CTK.CTkEntry(self,placeholder_text=label)
 
         self.title.grid(column = 0, row = 0)
-        self.entry.grid(column = 0, row = 1)
+        self.entry.grid(column = 0, row = 1, padx = MP, pady = MP)
+
+    def set(self, text):
+        self.entry.insert(index=0, string=text)
+
+    def get(self):
+        return self.entry.get()
 
     def grid(self, column,row):
         super().grid(column = column, row = row)
+class myButton(CTK.CTkButton):
+    def __init__(self, master, text, command = None):
+        super().__init__(master, text=text, command=command)
+    def grid(self, column, row):
+        super().grid(column = column, row = row, pady = MP, padx = MP)
 
-def pos(l):
-    for i in range(len(l)):
-        for j in range(len(l[i])):
-            l[i][j].grid(column = j,row = i)
+class plot():
+    def __init__(self, master):
+        self.plotFrame = CTK.CTkFrame(master)
+        self.plotFrame.grid(column = 1, row = 0)
+
+        fig = Figure(figsize=(5, 4), dpi=100)
+        t = np.arange(0, 3, .01)
+        ax = fig.add_subplot()
+        line, = ax.plot(t, 2 * np.sin(2 * np.pi * t))
+        ax.set_xlabel("time [s]")
+        ax.set_ylabel("f(t)")
+
+        canvas = FigureCanvasTkAgg(fig, master=self.plotFrame)  # A tk.DrawingArea.
+        canvas.draw()
+
+        # pack_toolbar=False will make it easier to use a layout manager later on.
+        toolbar = NavigationToolbar2Tk(canvas, self.plotFrame, pack_toolbar=False)
+        toolbar.update()
+
+        button_quit = CTK.CTkButton(master=self.plotFrame, text="Quit", command=self.plotFrame.destroy)
+
+
+        # Packing order is important. Widgets are processed sequentially and if there
+        # is no space left, because the window is too small, they are not displayed.
+        # The canvas is rather flexible in its size, so we pack it last which makes
+        # sure the UI controls are displayed as long as possible.
+        button_quit.pack(side=CTK.BOTTOM)
+
+        toolbar.pack(side=CTK.BOTTOM, fill=CTK.X)
+        canvas.get_tk_widget().pack(side=CTK.TOP, fill=CTK.BOTH, expand=True)
+
+
+
+
+
+
 
 app = CTK.CTk()  # create CTk window like you do with the Tk window
 
-#Sweep Frame Section vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-sweepFrame = CTK.CTkFrame(app)
-sweepFrameTitle = CTK.CTkLabel(sweepFrame,text="Sweep",fg_color="gray30", corner_radius=6)
 
+#sweep, calibration, save read, config, etc ...
+tools = CTK.CTkFrame(app)
+display = CTK.CTkFrame(app)
+
+tools.grid(column = 0, row = 0, sticky=CTK.N, padx = 16)
+display.grid(column = 1, row = 0)
+
+
+sweepFrame = CTK.CTkFrame(tools)
+
+calibrationFrame = CTK.CTkFrame(tools)
+
+ReadFrame = CTK.CTkFrame(tools)
+
+
+#Sweep Frame Section vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 sFreqEntry = myEntry(sweepFrame, "Start Frequency")
 eFreqEntry = myEntry(sweepFrame, "End Frequency")
@@ -36,25 +117,130 @@ mppEntry = myEntry(sweepFrame, "Measure Per Points")
 
 startSweepButton = CTK.CTkButton(sweepFrame)
 
+
+sFreqEntry.grid(0,0)
+eFreqEntry.grid(1,0)
+
+numOfPointsEntry.grid(0,1)
+mppEntry.grid(1,1)
+
+sweepFrame.grid(column = 0, row = 0)
+
 #Calibration Section vvvvvvvvvvvvvvvvvvvvvvvvvvvv
+def loadCalib():
+    calib_file = fd.askopenfilename()
+    #usar funcao load calib
 
-fd.askdirectory()
+def saveCalib():
+    filename = fd.asksaveasfilename()
+    #usar função salvar vna
 
-calibrationFrame = CTK.CTkFrame(app)
+
 
 calibrateButton = CTK.CTkButton(calibrationFrame, text= "Calibrate")
 
 #use tkinter askforfile
-loadCalibButton = CTK.CTkButton(calibrationFrame, text="Load Calib")
+loadCalibButton = CTK.CTkButton(calibrationFrame, text="Load Calib", command=loadCalib)
 
 #use tkinter askfordirectory
-saveCalibButton = CTK.CTkButton(calibrationFrame,text = "Save Calib")
+saveCalibButton = CTK.CTkButton(calibrationFrame,text = "Save Calib", command=saveCalib)
 
 #Pasta das medidas vvvvvvvvvvvvvvv
 
 #botao para escolher pasta para salvar medidas
-saveMeasuresButton = CTK.CTkButton(app, text = "Save Measures")
 
+
+calibrateButton.grid(column = 0, row = 0, pady = 8)
+loadCalibButton.grid(column =  0, row = 1, pady = 8)
+saveCalibButton.grid(column = 0, row = 2, pady = 8)
+
+calibrationFrame.grid(column = 0, row = 1, pady = 16,sticky=CTK.W)
+
+
+#save read
+def saveRead():
+   save_dir = fd.askdirectory()
+   print(save_dir)
+
+
+saveButton = myButton(ReadFrame, text="Save Directory", command=saveRead)
+
+#save read
+
+
+#read 
+def read():
+    save_name = fd.asksaveasfilename()
+    print(save_name)
+    sfreq = None
+    efreq = None
+    n_points = None
+    mpp = None
+    n_passos = None
+    #tem que zerar o frame sempre antes pra apagar a mensagem de erro anterior
+    for child in display.winfo_children():
+        child.destroy()
+    try:
+        sfreq = int(sFreqEntry.get())
+
+        efreq = int(eFreqEntry.get())
+
+        n_points = int(numOfPointsEntry.get())
+        mpp = int(mppEntry.get())
+        
+        n_passos = int(n_passosEntry.get())
+    except:
+        CTK.CTkLabel(display, text="SWEEP INVALIDO", font=CTK.CTkFont(size=40)).pack()
+        return
+    #lite.measure(sfreq,efreq,n_points,mpp)
+    #lite.calibrate_S11()
+
+    #f,real,imag = lite.extract_S11()
+
+    for i in range(n_passos):
+        vna.save2s1p(["Hz","S","RI","R 50"],[[1,2,3],[3,2,1],[0.1,3.0,1]],f"{save_name}/{save_name[save_name.rfind('/')+1:]}_{i}")
+
+
+readButton = myButton(ReadFrame, text = "Read", command=read)
+
+#passos
+n_passosEntry = myEntry(ReadFrame, "numero de passos")
+
+
+readButton.grid(column = 1, row = 0)
+n_passosEntry.grid(column=0,row = 0)
+
+ReadFrame.grid(column = 0, row = 2)
+
+#algumas configurações
+
+def on_close():
+    last_save = {
+        "sfreq": sFreqEntry.get(),
+        "efreq": eFreqEntry.get(),
+        "n_points": numOfPointsEntry.get(),
+        "mpp" : mppEntry.get(),
+        "n_steps": n_passosEntry.get() 
+    }
+
+    f = open('config.json', 'w')
+    json_data = json.dump(last_save, f)
+
+    app.destroy()
+f = open('config.json', 'r')
+last_data = json.load(f)
+f.close()
+
+sFreqEntry.set(last_data['sfreq'])
+eFreqEntry.set(last_data['efreq'])
+numOfPointsEntry.set(last_data['n_points'])
+mppEntry.set(last_data['mpp'])
+n_passosEntry.set(last_data['n_steps'])
+
+
+
+
+app.protocol('WM_DELETE_WINDOW', on_close)
 app.mainloop()
 
 

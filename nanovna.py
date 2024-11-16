@@ -3,7 +3,7 @@ import serial.tools.list_ports
 import time
 import struct
 import math
-
+import os
 class Nvna:
 
     #Operation codes
@@ -423,7 +423,11 @@ def to_db(val):
     return [20*math.log10(abs(i)) for i in val]
 
 def save2s1p(headers,values,filename):
-    f = open("measures/" + filename + ".s1p", "w")
+    #cria editório pra salvar se não existir 
+    dir = filename[:filename.rfind('/')]
+    os.makedirs(dir, exist_ok=True)
+
+    f = open(filename + ".s1p", "w")
     f.write("! Saved from nanovna library\n")
     
     f.write("#")
