@@ -43,6 +43,10 @@ class Nvna:
 
     _S11_CAL = []   #s11 calibrated
     
+    _S11_SHORT = []
+    _S11_OPEN = []
+    _S11_LOAD = []
+
     _fwd0Re = []    #real part of foward wave from port 1
     _fwd0Im = []    #imaginary part of foward wave from port 1
     
@@ -298,6 +302,29 @@ class Nvna:
 
     #calbration methods vvvvvv
 
+    def calib_short(self,start_f,end_f,n_points,nmpp):
+        self.measure(start_f,end_f,n_points,nmpp)
+        self._S11_SHORT = self._S11_RAW
+    
+    def calib_open(self,start_f,end_f,n_points,nmpp):
+        self.measure(start_f,end_f,n_points,nmpp)
+        self._S11_OPEN = self._S11_RAW
+    
+    def calib_load(self,start_f,end_f,n_points,nmpp):
+        self.measure(start_f,end_f,n_points,nmpp)
+        self._S11_LOAD = self._S11_RAW
+    
+    def calibrate(self):
+        self._e00 = self._S11_LOAD
+        self._e11 = [complex(0,0)]*len(self._e00)
+        self._e01 = [complex(0,0)]*len(self._e00)
+        for i in range(len(self._e00)):
+            self._e11[i] = (self._S11_OPEN[i] + self._S11_SHORT[i] - 2*self._S11_LOAD[i])/(self._S11_OPEN[i] - self._S11_SHORT[i])
+            self._e01[i] = (1-self._e11[i]**2)*(self._S11_OPEN[i] - self._S11_SHORT[i])/2
+
+        print("Calibrated!")
+        self._cal = True
+
     def calibration(self,start_f,end_f,n_points,nmpp):
         
         print("Insert short and press enter...")
@@ -334,7 +361,7 @@ class Nvna:
 
         print("Calibrated!")
         self._cal = True
-    
+
 
     def calibrate_S11(self):
         if not self._cal:
@@ -364,7 +391,7 @@ class Nvna:
              e01_real,e01_imag,
              e11_real,e11_imag
              ],
-            'calibration/'+filename
+            filename
         )
     def load_calib(self,path):
         header, data = read_s1p(path)

@@ -168,9 +168,53 @@ def calib():
     except:
         CTK.CTkLabel(display, text="SWEEP INVALIDO", font=CTK.CTkFont(size=40)).pack()
         return
+    
+    var = CTK.IntVar(master=app, value=0)
+    
+    label = CTK.CTkLabel(display, text="CONECTE O SHORT E APERTE NO BOTÃO")
+    b_calib = myButton(display, "Calibrate", command= lambda: var.set(var.get() + 1))
 
-    liteVna.calibration(sfreq,efreq, n_points,mpp)
-    liteVna.save_calib(f"{save_name}/{save_name[save_name.rfind('/')+1:]}")
+    label.grid(column = 0, row = 0)
+    b_calib.grid(column = 0, row = 1)
+
+    b_calib.wait_variable(var)
+
+    b_calib.grid_remove()
+    label.configure(text = "calibrando ...")
+    app.update()    #precisa dele se não trava ui       
+
+    liteVna.calib_short(sfreq,efreq, n_points,mpp)
+
+    b_calib.grid(column = 0, row = 1)
+    label.configure(require_redraw=True, text="CONECTE O OPEN E APERTE NO BOTÃO")
+    app.update()
+
+    b_calib.wait_variable(var)
+
+    b_calib.grid_remove()
+    label.configure(text = "calibrando ...")
+    app.update()    #precisa dele se não trava ui       
+
+    liteVna.calib_open(sfreq,efreq, n_points,mpp)
+    
+    b_calib.grid(column = 0, row = 1)
+    label.configure(require_redraw=True, text="CONECTE O LOAD E APERTE NO BOTÃO")
+    app.update()
+
+    b_calib.wait_variable(var)
+
+    b_calib.grid_remove()
+    label.configure(text = "calibrando ...")
+    app.update()    #precisa dele se não trava ui       
+
+    liteVna.calib_load(sfreq,efreq, n_points,mpp)
+    
+    label.grid_forget()
+
+    liteVna.calibrate()
+    
+    
+    liteVna.save_calib(f"{save_name}")
 
 def saveCalib():
     filename = fd.asksaveasfilename()
