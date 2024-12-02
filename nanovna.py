@@ -334,7 +334,7 @@ class Nvna:
 
         print("Calibrated!")
         self._cal = True
-
+    
 
     def calibrate_S11(self):
         if not self._cal:
@@ -443,6 +443,14 @@ def save2s1p(headers,values,filename):
         f.write("\n")
     
     f.close()
+
+def get_ports():
+    ports = serial.tools.list_ports.comports()
+    valid = []
+    for p in ports:
+        if 'ttyS' not in p.name:
+             valid.append(p.name)
+    return valid
 
 def read_s1p(path):
     file = open(path,'r')

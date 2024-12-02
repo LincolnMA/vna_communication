@@ -12,12 +12,16 @@ import numpy as np
 
 import json
 
+# Api do sistema vvvvvv
+liteVna = None
+
+
+#driver = driver_lib.positioner()
+
+
+
 CTK.set_appearance_mode("System")  # Modes: system (default), light, dark
 CTK.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
-
-
-#lite = vna.Nvna()
-#driver = driver_lib.positioner()
 
 
 #GUI CONFIG
@@ -52,15 +56,27 @@ class myButton(CTK.CTkButton):
     def grid(self, column, row):
         super().grid(column = column, row = row, pady = MP, padx = MP)
 
+class myCombo(CTK.CTkFrame):
+    def __init__(self, master, label, options):
+        super().__init__(master, fg_color="transparent")
+        self.title = CTK.CTkLabel(self, text = label)
+        self.combobox = CTK.CTkComboBox(self, values = options)
+
+        self.title.grid(column = 0, row = 0)
+        self.combobox.grid(column = 1, row = 0)
+
+    def get(self):
+        return self.combobox.get()
+
 class plot():
-    def __init__(self, master):
+    def __init__(self, master, data):
         self.plotFrame = CTK.CTkFrame(master)
         self.plotFrame.grid(column = 1, row = 0)
 
         fig = Figure(figsize=(5, 4), dpi=100)
-        t = np.arange(0, 3, .01)
+        #t = np.arange(0, 3, .01)
         ax = fig.add_subplot()
-        line, = ax.plot(t, 2 * np.sin(2 * np.pi * t))
+        line, = ax.plot(data[0], data[1])
         ax.set_xlabel("time [s]")
         ax.set_ylabel("f(t)")
 
@@ -85,12 +101,7 @@ class plot():
 
 
 
-
-
-
-
 app = CTK.CTk()  # create CTk window like you do with the Tk window
-
 
 #sweep, calibration, save read, config, etc ...
 tools = CTK.CTkFrame(app)
@@ -106,7 +117,9 @@ calibrationFrame = CTK.CTkFrame(tools)
 
 ReadFrame = CTK.CTkFrame(tools)
 
+configFrame = CTK.CTkFrame(tools)
 
+configFrame.grid(column = 0, row = 3, pady = MP, ipadx = SP,ipady = SP)
 #Sweep Frame Section vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 sFreqEntry = myEntry(sweepFrame, "Start Frequency")
@@ -128,50 +141,13 @@ sweepFrame.grid(column = 0, row = 0)
 
 #Calibration Section vvvvvvvvvvvvvvvvvvvvvvvvvvvv
 def loadCalib():
+    
     calib_file = fd.askopenfilename()
     #usar funcao load calib
 
-def saveCalib():
-    filename = fd.asksaveasfilename()
-    #usar função salvar vna
-
-
-
-calibrateButton = CTK.CTkButton(calibrationFrame, text= "Calibrate")
-
-#use tkinter askforfile
-loadCalibButton = CTK.CTkButton(calibrationFrame, text="Load Calib", command=loadCalib)
-
-#use tkinter askfordirectory
-saveCalibButton = CTK.CTkButton(calibrationFrame,text = "Save Calib", command=saveCalib)
-
-#Pasta das medidas vvvvvvvvvvvvvvv
-
-#botao para escolher pasta para salvar medidas
-
-
-calibrateButton.grid(column = 0, row = 0, pady = 8)
-loadCalibButton.grid(column =  0, row = 1, pady = 8)
-saveCalibButton.grid(column = 0, row = 2, pady = 8)
-
-calibrationFrame.grid(column = 0, row = 1, pady = 16,sticky=CTK.W)
-
-
-#save read
-def saveRead():
-   save_dir = fd.askdirectory()
-   print(save_dir)
-
-
-saveButton = myButton(ReadFrame, text="Save Directory", command=saveRead)
-
-#save read
-
-
-#read 
-def read():
+def calib():
     save_name = fd.asksaveasfilename()
-    print(save_name)
+    
     sfreq = None
     efreq = None
     n_points = None
@@ -192,15 +168,70 @@ def read():
     except:
         CTK.CTkLabel(display, text="SWEEP INVALIDO", font=CTK.CTkFont(size=40)).pack()
         return
-    #lite.measure(sfreq,efreq,n_points,mpp)
+
+    liteVna.calibration(sfreq,efreq, n_points,mpp)
+    liteVna.save_calib(f"{save_name}/{save_name[save_name.rfind('/')+1:]}")
+
+def saveCalib():
+    filename = fd.asksaveasfilename()
+    #usar função salvar vna
+
+
+
+calibrateButton = CTK.CTkButton(calibrationFrame, text= "Calibrate", command=calib)
+
+#use tkinter askforfile
+loadCalibButton = CTK.CTkButton(calibrationFrame, text="Load Calib", command=loadCalib)
+
+#use tkinter askfordirectory
+saveCalibButton = CTK.CTkButton(calibrationFrame,text = "Save Calib", command=saveCalib)
+
+#Pasta das medidas vvvvvvvvvvvvvvv
+
+calibrateButton.grid(column = 0, row = 0, pady = 8)
+loadCalibButton.grid(column =  0, row = 1, pady = 8)
+saveCalibButton.grid(column = 0, row = 2, pady = 8)
+
+calibrationFrame.grid(column = 0, row = 1, pady = 16,sticky=CTK.W)
+
+
+#read 
+def read():
+    save_name = fd.asksaveasfilename()
+    print("save file name: ",save_name)
+    
+    sfreq = None
+    efreq = None
+    n_points = None
+    mpp = None
+    n_passos = None
+    #tem que zerar o frame sempre antes pra apagar a mensagem de erro anterior
+    for child in display.winfo_children():
+        child.destroy()
+    try:
+        sfreq = int(sFreqEntry.get())
+
+        efreq = int(eFreqEntry.get())
+
+        n_points = int(numOfPointsEntry.get())
+        mpp = int(mppEntry.get())
+        
+        n_passos = int(n_passosEntry.get())
+    except:
+        CTK.CTkLabel(display, text="SWEEP INVALIDO", font=CTK.CTkFont(size=40)).pack()
+        return
+    liteVna.measure(sfreq,efreq,n_points,mpp)
     #lite.calibrate_S11()
 
-    #f,real,imag = lite.extract_S11()
+    f,real = liteVna.extract_S11_RAW()
 
+    plt = None 
     for i in range(n_passos):
-        vna.save2s1p(["Hz","S","RI","R 50"],[[1,2,3],[3,2,1],[0.1,3.0,1]],f"{save_name}/{save_name[save_name.rfind('/')+1:]}_{i}")
+        vna.save2s1p(["Hz","S","RI","R 50"],[f, real],f"{save_name}/{save_name[save_name.rfind('/')+1:]}_{i}")
+        plt = plot(display, [f,real])
 
 
+    
 readButton = myButton(ReadFrame, text = "Read", command=read)
 
 #passos
@@ -212,7 +243,34 @@ n_passosEntry.grid(column=0,row = 0)
 
 ReadFrame.grid(column = 0, row = 2)
 
+
+#frame config
+
+valid_ports = vna.get_ports()
+
+vna_port = myCombo(configFrame, "Porta VNA", valid_ports)
+pos_driver_port = myCombo(configFrame, "porta Posicionador", valid_ports)
+
+def connect():
+    global liteVna 
+    liteVna = vna.Nvna(baudrate=2e6, port_name=f'/dev/{vna_port.get()}')
+
+
+
+b_connect = CTK.CTkButton(configFrame, text="Conectar", command=connect)
+
+
+vna_port.grid(column = 0,row = 0)
+
+b_connect.grid(column = 1,row = 0)
+
+pos_driver_port.grid(column = 0,row = 1)
+
+
+
 #algumas configurações
+
+
 
 def on_close():
     last_save = {
@@ -236,6 +294,7 @@ eFreqEntry.set(last_data['efreq'])
 numOfPointsEntry.set(last_data['n_points'])
 mppEntry.set(last_data['mpp'])
 n_passosEntry.set(last_data['n_steps'])
+
 
 
 
