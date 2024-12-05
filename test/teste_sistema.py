@@ -10,6 +10,7 @@ sys.path.append(parent)
 import nanovna as vna
 from driver_lib import positioner
 import matplotlib.pyplot as plot
+
 import time
 '''
 roteiro de teste:
@@ -24,8 +25,8 @@ roteiro de teste:
 9. voltar para a etapa 6
 '''
 driver = positioner()
-driver.connect('/dev/ttyUSB0')
-
+driver.connect('/dev/ttyUSB1')
+print("connected to driver")
 lite = vna.Nvna(baudrate=2e6, port_name='/dev/ttyACM0')
 lite.load_calib('./measures/calibration/teste-save-calib.s1p')
 

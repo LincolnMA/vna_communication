@@ -4,6 +4,8 @@ import driver_lib
 import customtkinter as CTK
 from tkinter import filedialog as fd
 
+import matplotlib.pyplot as plt
+
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 
@@ -14,9 +16,7 @@ import json
 
 # Api do sistema vvvvvv
 liteVna = None
-
-
-#driver = driver_lib.positioner()
+driver = driver_lib.positioner()
 
 
 
@@ -69,18 +69,19 @@ class myCombo(CTK.CTkFrame):
         return self.combobox.get()
 
 class plot():
-    def __init__(self, master, data):
+    def __init__(self, master):
         self.plotFrame = CTK.CTkFrame(master)
         self.plotFrame.grid(column = 1, row = 0)
 
-        fig = Figure(figsize=(5, 4), dpi=100)
+        plt.ion()
+        self.fig = Figure(figsize=(5, 4), dpi=100)
         #t = np.arange(0, 3, .01)
-        ax = fig.add_subplot()
-        line, = ax.plot(data[0], data[1])
-        ax.set_xlabel("time [s]")
-        ax.set_ylabel("f(t)")
+        self.ax = self.fig.add_subplot()
 
-        canvas = FigureCanvasTkAgg(fig, master=self.plotFrame)  # A tk.DrawingArea.
+        self.ax.set_xlabel("GHz")
+        self.ax.set_ylabel("I")
+
+        canvas = FigureCanvasTkAgg(self.fig, master=self.plotFrame)  # A tk.DrawingArea.
         canvas.draw()
 
         # pack_toolbar=False will make it easier to use a layout manager later on.
@@ -98,7 +99,15 @@ class plot():
 
         toolbar.pack(side=CTK.BOTTOM, fill=CTK.X)
         canvas.get_tk_widget().pack(side=CTK.TOP, fill=CTK.BOTH, expand=True)
+    def update(self,xdata, ydata):
+        xdata = [x/10e9 for x in xdata]
+        self.ax.clear()
+        for y in ydata:
+            self.ax.plot(xdata,y)
 
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        plt.pause(0.05)
 
 
 app = CTK.CTk()  # create CTk window like you do with the Tk window
@@ -143,6 +152,8 @@ sweepFrame.grid(column = 0, row = 0)
 def loadCalib():
     
     calib_file = fd.askopenfilename()
+    liteVna.load_calib(calib_file)
+   
     #usar funcao load calib
 
 def calib():
@@ -264,15 +275,18 @@ def read():
     except:
         CTK.CTkLabel(display, text="SWEEP INVALIDO", font=CTK.CTkFont(size=40)).pack()
         return
-    liteVna.measure(sfreq,efreq,n_points,mpp)
-    #lite.calibrate_S11()
-
-    f,real = liteVna.extract_S11_RAW()
-
-    plt = None 
+   
+    plt = plot(display) 
     for i in range(n_passos):
+        liteVna.measure(sfreq,efreq,n_points,mpp)
+        liteVna.calibrate_S11()
+
+        f,real, imag = liteVna.extract_S11()
         vna.save2s1p(["Hz","S","RI","R 50"],[f, real],f"{save_name}/{save_name[save_name.rfind('/')+1:]}_{i}")
-        plt = plot(display, [f,real])
+
+        driver.small_step_foward()
+
+        plt.update(f,[real,imag])
 
 
     
@@ -298,6 +312,7 @@ pos_driver_port = myCombo(configFrame, "porta Posicionador", valid_ports)
 def connect():
     global liteVna 
     liteVna = vna.Nvna(baudrate=2e6, port_name=f'/dev/{vna_port.get()}')
+    driver.connect(porta=f'/dev/{pos_driver_port.get()}')
 
 
 
@@ -348,3 +363,5 @@ app.mainloop()
 
 
 
+driver.disconnect()
+liteVna.close()

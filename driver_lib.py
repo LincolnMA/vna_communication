@@ -10,8 +10,7 @@ class positioner:
         pass
     def connect(self,porta,b = 9600):
         self.connection = serial.Serial(port=porta,baudrate=b)
-        while not self.connection.in_waiting:
-            pass
+        time.sleep(1)
         print("home achivied!")
     def small_step_foward(self):
         self.connection.write(b'd')
