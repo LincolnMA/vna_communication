@@ -346,11 +346,11 @@ class vna_driver:
     """
 
 
-    def save_S11(self,filename):
+    def save_S11(self,file):
         R = [n.real for n in self._S11_CAL]
         I = [n.imag for n in self._S11_CAL]
         
-        save2s1p(['Hz','R','I'],[self._freqs,R,I], filename)
+        save2s1p(['Hz','R','I'],[self._freqs,R,I], file)
 
     def config_payload(self,
              command,#Comando a ser usado
@@ -438,8 +438,17 @@ class vna_driver:
         self._s11_ready = True
         return [self._freqs,to_db(self._S11_CAL)]
     
-        
     
+    #save functions
+    def save_s11(self, file):
+        R = [i.real for i in self._S11_CAL]
+        I = [i.imag for i in self._S11_CAL]
+
+        save2s1p(["Hz", "S11", "RI"],[self._freqs, R,I],file)
+    def save_s11_logmag(self, file):
+
+        save2s1p(["Hz", "S11", "RI"],[self._freqs, to_db(self._S11_CAL)],file)
+
     def save_calib(self,filename):
         if self._cal == False: 
             raise Exception("You haven't calibrated yet! Please calibrate or load calibration data")
@@ -517,13 +526,13 @@ def find_port():
 def to_db(val):
     return [20*math.log10(abs(i)) for i in val]
 
-def save2s1p(headers,values,filename):
+def save2s1p(headers,values,file):
     #cria editório pra salvar se não existir 
-    dir = filename[:filename.rfind('/')]
+    dir = file.parent
     os.makedirs(dir, exist_ok=True)
 
-    f = open(filename + ".s1p", "w")
-    f.write("! Saved from nanovna library\n")
+    f = open(file, "w")
+    f.write("! Saved from litevna library\n")
     
     f.write("#")
     for i in headers: f.write(" " + i)

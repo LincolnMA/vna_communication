@@ -1,9 +1,10 @@
 import pytest
-from vna_driver import vna_driver
+from vna_driver import vna_driver, read_s1p
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 lite = vna_driver()
-
+cwd = Path.cwd()/'test'
 
 # fixture para desconectar automaticamente
 @pytest.fixture(autouse=True)
@@ -18,7 +19,7 @@ def setup(request):
     if 'nosetup' in request.keywords: return 
 
     lite.connect(port_name = "COM8")
-    lite.cfg_sweep(start = 600e6, stop = 930e6, points = 201, n_mean = 2)
+    lite.cfg_sweep(start = 300e6, stop = 5e9, points = 201, n_mean = 2)
     yield
     lite.close()
 
@@ -89,12 +90,74 @@ def test_measure_calib():
 
 
 def test_save_calib():
-    pass
+
+    lite.calibrate_cli()
+    lite.save_calib(cwd/"calib_test.s1p")
     
 
-
 def test_measure_load_calib():
-    pass
+    lite.load_calib(cwd/'calib_test.s1p')
+    lite.measure()
 
+    freq, s11_raw_logmag = lite.extract_s11_raw_logmag()
+    freq, s11_logmag = lite.extract_s11_logmag()
+
+    fig, [axraw, axcalib] = plt.subplots(2)
+
+    axraw.plot(freq, s11_raw_logmag, label = "raw")
+    axcalib.plot(freq, s11_logmag, label = "calib")
+
+
+    fig.tight_layout()
+
+    plt.title("Load calib")
+    plt.legend()
+    plt.show()
+
+
+
+def test_save_s11():
+    lite.load_calib(cwd/'calib_test.s1p')
+    lite.measure()
+
+    lite.save_s11(cwd/'teste.s1p')
+
+    _, data = read_s1p(cwd/'teste.s1p')
+
+    freqs = data[0]
+    r = data[1]
+    i = data[2]
+    
+    fig, ax = plt.subplots(1)
+
+    ax.plot(freqs, r)
+    ax.plot(freqs, i)
+
+    plt.title("save s11")
+    plt.show()
+
+def test_save_logmag_s11():
+    lite.load_calib(cwd/'calib_test.s1p')
+    lite.measure()
+
+    f = cwd/'test_logmag.s1p'
+    lite.save_s11_logmag(f)
+
+    _, data = read_s1p(f)
+
+    freqs = data[0]
+    logmag = data[1]
+    
+    fig, ax = plt.subplots(1)
+
+    ax.plot(freqs, logmag)
+
+
+    plt.title("save logmag")
+    plt.show()
+
+
+
+ 
 
     
