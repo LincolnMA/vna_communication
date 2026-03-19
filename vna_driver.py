@@ -347,8 +347,8 @@ class vna_driver:
 
 
     def save_S11(self,file):
-        R = [n.real for n in self._S11_CAL]
-        I = [n.imag for n in self._S11_CAL]
+        R = [n.real for n in self._S11_RAW]
+        I = [n.imag for n in self._S11_RAW]
         
         save2s1p(['Hz','R','I'],[self._freqs,R,I], file)
 
@@ -441,13 +441,13 @@ class vna_driver:
     
     #save functions
     def save_s11(self, file):
-        R = [i.real for i in self._S11_CAL]
-        I = [i.imag for i in self._S11_CAL]
-
+        R = [i.real for i in self._S11_RAW]
+        I = [i.imag for i in self._S11_RAW]
+        print(R, I)
         save2s1p(["Hz", "S11", "RI"],[self._freqs, R,I],file)
     def save_s11_logmag(self, file):
 
-        save2s1p(["Hz", "S11", "RI"],[self._freqs, to_db(self._S11_CAL)],file)
+        save2s1p(["Hz", "S11", "RI"],[self._freqs, to_db(self._S11_RAW)],file)
 
     def save_calib(self,filename):
         if self._cal == False: 

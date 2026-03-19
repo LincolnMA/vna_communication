@@ -18,7 +18,7 @@ def setup(request):
 
     if 'nosetup' in request.keywords: return 
 
-    lite.connect(port_name = "COM8")
+    lite.connect(port_name = "/dev/ttyACM0")
     lite.cfg_sweep(start = 300e6, stop = 5e9, points = 201, n_mean = 2)
     yield
     lite.close()
