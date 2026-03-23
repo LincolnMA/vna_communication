@@ -4,6 +4,8 @@ import time
 import struct
 import math
 import os
+import re
+from pathlib import Path
 class vna_driver:
 
     #Operation codes
@@ -557,40 +559,40 @@ def get_ports():
     return valid
 
 def read_s1p(path):
-    file = open(path,'r')
+    file = open(path, 'r')
     content = file.read()
     file.close()
-
-    content = content.split('\n') #separar por linhas
-    header_line = 0
-    for line in content:
-
-        if '#' in line:
-            break
-        header_line += 1
     
-    header = content[header_line]
-    header = header.split(' ')
-    header.pop(0) #remove '#'
-
-    raw = content[header_line+1:]
-    raw = [line.split('\t') for line in raw]
-
+    header = ""
     data = []
-    for line in raw:
-        d = []
-        for item in line:
-            if item != '': d.append(float(item))
-        if d != []: data.append(d)
 
+    #finding if theres a header
+    if '#' in content:
+        pass
+    else:
+        data = content.split('\n')
+        data.pop() # last item is void    
+    
 
-    data_transposed = [] # transpondo a matriz, os dados vem em colunas, então teremos uma coluna para cada parametro, ao invés de uma linha para cada 
+    freq = [0]*len(data)
+    s1p = [complex(0,0)]*len(data)
+    
+    
 
-    for i in range(len(data[0])):
-        colum = []
-        for e in range(len(data)):
-            colum.append(data[e][i])
-        
-        data_transposed.append(colum)
+    
+    for n in range(len(data)):
+    #a little of regex magic
+    #matchs anything that has one or none - signal (to get positive and negative numbers)
+    #and any number of digits
+    #and one or none point (to get integers and floats
+    #and any number of digits again
+    #a little of regex magic
+    #matchs anything that has one or none - signal (to get positive and negative numbers)
+    #and 
+        match = re.findall('-?\d+\.?\d+', data[n])
+        freq[n] = float(match[0])
+        s1p[n] = complex(float(match[1]),float(match[2])) 
 
-    return header, data_transposed
+    
+    return [freq, s1p]
+    
