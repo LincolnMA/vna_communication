@@ -568,18 +568,20 @@ def read_s1p(path):
 
     #finding if theres a header
     if '#' in content:
-        pass
+        p = content.split('#')
+        data  = p[-1]
+        data = data.split('\n')
+        data.pop(0) #primeira linha vai ser o ultimo cabecalho
     else:
         data = content.split('\n')
-        data.pop() # last item is void    
     
-
-    freq = [0]*len(data)
-    s1p = [complex(0,0)]*len(data)
-    
-    
+    data = [d for d in data if d != ''] #removing blank lines
+    s1p_regex = r"-?\d+\.?\d+e?[-|+]?\d+"
 
     
+    match = re.findall(s1p_regex, data[0])
+    values = [[] for n in range(len(match))] #preeacolating columns
+
     for n in range(len(data)):
     #a little of regex magic
     #matchs anything that has one or none - signal (to get positive and negative numbers)
@@ -589,10 +591,11 @@ def read_s1p(path):
     #a little of regex magic
     #matchs anything that has one or none - signal (to get positive and negative numbers)
     #and 
-        match = re.findall('-?\d+\.?\d+', data[n])
-        freq[n] = float(match[0])
-        s1p[n] = complex(float(match[1]),float(match[2])) 
-
+        match = re.findall(s1p_regex, data[n])
+        
+        for n in range(len(match)):
+            values[n].append(float(match[n]))
     
-    return [freq, s1p]
+
+    return values
     
