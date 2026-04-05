@@ -52,3 +52,9 @@ vna.close()
 ```
 
 > ATTENTION: Always close connection to prevent bugs!
+
+## read_s1p
+consegue ler comentários, opções e dados
+limitações:
+- se linha de dados não começar com número, a linha não vai ser lida
+- apenas uma linha de opções (#) permitida

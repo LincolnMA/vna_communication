@@ -3,7 +3,7 @@ import time
 
 class positioner:
     
-    connection = None
+    connection:(serial.Serial|None)= None
 
 
     def __init__(self) -> None:
