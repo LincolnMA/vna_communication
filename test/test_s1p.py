@@ -102,4 +102,19 @@ def test_read_s1p(s1p_files_path): #no comments and header
 
 
 def test_write():
-    pass
+    option = ['Hz', 'S','L','R','50']
+    comments = ['gerado por vna_driver lib']
+
+    data = [[1000.0,1100.0, 1200.0],[1e-1, 1.5e-1, 1.3e-1], [0.90e-2, 17.77e-13, 152.3e-1]]
+
+    path = Path('./s1p_test_files/write.s1p')
+    
+    s1p.write_s1p(path, option, comments, data)
+
+    opt2,com2, [d1, d2, d3] = s1p.read_s1p(path)
+
+    assert opt2 == ['Hz', 'S','L','R','50']
+    assert com2 == ['gerado por vna_driver lib']
+    assert d1 == [1000.0,1100.0, 1200.0]
+    assert d2 == [1e-1, 1.5e-1, 1.3e-1]
+    assert d3 == [0.90e-2, 17.77e-13, 152.3e-1]

@@ -1,5 +1,5 @@
 import re
-
+from pathlib import Path
 
 
 def read_s1p(path):
@@ -18,12 +18,12 @@ def read_s1p(path):
     #remove all lines that doesnt start with number
     content = [line for line in content if line[0].isnumeric()]
     n_columns = len(re.findall(r'\S+',content[0])) #number of columns = number of spaces + newline
- 
+    print(n_columns)
     n_rows = len(content)
 
     data = [[0 for _ in range(n_rows)] for _ in range(n_columns)] 
     
-    s1p_regex = r"-?\d+\.?\d+e?[-|+]?\d+" 
+    s1p_regex = r"-?\d+\.?\d+(?:e?[-+]?\d+)?" 
     #sorry for that, i will explain:
     #match all patterns that  have
     # a minus signal - (or not) and after
@@ -41,16 +41,14 @@ def read_s1p(path):
 
     for n_line in range(len(content)):
         values = re.findall(s1p_regex,content[n_line])
+        print(values)
        # print(values[0])
         for n in range(n_columns):
-            print(values[n])
             data[n][n_line] = float(values[n])
-            print(data[0][n_line], data[1][n_line], n, n_line)
-
+            
 
 
     return [option, comments, data]
-
 
 def get_comments(path):
     
@@ -77,3 +75,30 @@ def get_option(path):
     
     options = re.findall(r'[^#\s+]+' ,options) #find all non space and non # characters sequences
     return options
+
+
+def write_s1p(path, option, comments, data):
+
+    file = path.open(mode='w')
+
+    
+    for com in comments:
+        file.write('!')
+        file.write(com + '\n')
+    
+    file.write('# ')
+    for opt in option:  
+        file.write(opt + ' ')
+
+    file.write('\n')
+    
+    
+    for nrows in range(len(data[0])):
+        for ncol in range(len(data)):
+
+            file.write(str(data[ncol][nrows]))
+            file.write('\t')
+
+        file.write('\n')
+
+    file.close()
